@@ -1,0 +1,16 @@
+.git
+.venv
+.azure
+.cache
+.pytest_cache
+.ruff_cache
+__pycache__
+local
+outputs
+data
+docs
+tests
+infra
+uv.lock
+*.pptx
+*.html

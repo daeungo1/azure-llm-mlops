@@ -1,0 +1,57 @@
+[project]
+name = "azure-llm-mlops"
+version = "0.1.0"
+description = "Azure ML SDK v2, external MLflow tracking, and CPU Hugging Face serving demo"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "azure-ai-ml>=1.30,<2",
+  "azure-identity>=1.25,<2",
+  "azureml-mlflow>=1.60,<2",
+  "mlflow==2.22.2",
+  "numpy==1.26.4",
+  "pandas==2.2.3",
+  "scikit-learn==1.6.1",
+  "matplotlib==3.10.3",
+  "huggingface-hub>=0.34,<1",
+  "requests>=2.32.4,<3",
+  "ipykernel>=6.29,<7",
+  "ipywidgets>=8.1,<9",
+  "tqdm>=4.67,<5",
+  "ruff>=0.14,<1",
+  "pytest>=8.4,<9",
+]
+
+[project.optional-dependencies]
+serving = [
+  "torch==2.8.0",
+  "transformers==4.57.6",
+  "azureml-inference-server-http>=1.5,<2",
+]
+
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pypi-mirror"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+default = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["model: loads the real Hugging Face CPU model"]
