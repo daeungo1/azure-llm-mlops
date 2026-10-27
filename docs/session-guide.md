@@ -110,6 +110,10 @@ MLflow 모델은 가중치 파일만이 아니라 `MLmodel`, 환경 정의,
 출력에 384차원 임베딩 모델이라는 정보가 있지만 전체 벡터는 반환하지 않습니다.
 추론 코드는 평균 pooling과 L2 정규화 후 cosine similarity로 분류합니다.
 하드코딩된 응답이나 API 대체 응답이 아닙니다.
+Test 탭에는 한국어 문장을 입력하지 않습니다. MiniLM은 영어 임베딩 모델이며
+사전 호출에서 한국어 3문장이 모두 `cancellation`으로 분류되었습니다.
+임계값과 "기타" 범주가 없어 무관한 문장도 가장 가까운 범주를 반환하므로
+교육용 데모 분류기임을 먼저 설명합니다.
 
 Consume에서 scoring URI와 인증 방식을 확인합니다.
 Public network는 익명 공개 API를 뜻하지 않습니다. Entra token이 필요합니다.
@@ -117,6 +121,9 @@ Public network는 익명 공개 API를 뜻하지 않습니다. Entra token이 �
 실제 Managed Endpoint에서는 잘못된 입력의 모델 응답 400을 외부 HTTP 424로
 감싸 반환하며 `ms-azureml-model-error-statuscode: 400` 헤더로 확인할 수 있습니다.
 Logs/Monitoring에서 컨테이너 로그와 요청 지표를 확인합니다.
+SDK `get_logs`에서는 거부된 요청의 사유(WARNING)만 보이고 성공 요청의 INFO는 보이지 않습니다.
+Endpoint 지표는 호출 후 1~2분 늦게 표시되므로 호출 수 계산에는 쓰지 않습니다.
+Application Insights는 컨테이너에 도달한 요청만 기록하며 무인증 401은 기록되지 않습니다.
 이 예제는 원문 상담 내용을 로그에 남기지 않습니다.
 
 ## Compute, Components, Environments
@@ -159,6 +166,7 @@ Notebooks, AutoML, Designer 편집기, Responsible AI, Batch Endpoint,
 | CPU 할당 실패 | AML 리전별 VM family quota와 실제 VM capacity를 별도로 확인 |
 | Endpoint 401/403 | `aad_token`의 audience와 `score/action` 권한 확인 |
 | Endpoint 4xx | JSON 필드, 1~16개 문장, 문장당 2,000자 제한 확인 |
+| 한국어 문장이 엉뚱한 범주로 분류 | 영어 임베딩 모델의 한계이므로 영문 샘플을 사용하거나 다국어 모델과 임계값을 별도 검증 |
 | Studio 메뉴가 다름 | Workspace가 ML Workspace인지 확인하고 최신 포털 메뉴에 맞춰 탐색 |
 | 외부 실험이 안 보임 | Tracking URI와 Workspace, experiment 이름, 로그인 tenant 확인 |
 

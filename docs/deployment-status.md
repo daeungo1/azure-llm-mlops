@@ -1,6 +1,6 @@
 ---
 title: 실제 Azure 배포 상태
-description: 교육 MLOps 완료 범위, 실제 ACR 이미지와 네트워크 설정 및 기존 검증 결과
+description: 교육 MLOps 완료 범위, 실제 ACR 이미지, 네트워크 설정 및 Endpoint 호출 검증 결과
 ms.date: 2026-10-27
 ---
 
@@ -11,13 +11,15 @@ HF CPU Endpoint 생성·추론은 완료 이력을 확인했습니다.
 다만 동일한 학습 모델을 등록한 뒤 서빙하는 단일 연속 파이프라인이나
 운영용 MLOps 전체 자동화가 완료된 것은 아닙니다.
 
-이번 검토는 기존 코드·실행 로그·저장된 검증 기록과
-현재 Azure 자산·Job 상태의 읽기 전용 조회를 대상으로 했습니다.
-학습·이미지 빌드·배포·추론 호출·테스트를 새로 실행하지 않았으며,
+이번 검토는 코드·실행 로그·저장된 검증 기록, 현재 Azure 자산·Job 상태 조회,
+실제 Endpoint 호출을 대상으로 했습니다.
+Endpoint는 `verify`와 [추가 호출 테스트](#추가-호출-테스트)로 호출했으며
+가장 최근 `verify`는 2026-10-27 09:49 UTC에 실행했습니다.
+학습·이미지 빌드·배포·pytest는 새로 실행하지 않았으며,
 Azure 리소스나 실행 코드는 변경하지 않았습니다.
 포털 시각적 검증이나 운영 품질 인증을 대체하는 판정은 아닙니다.
 
-| 단계 | 판정 | 기존 증적과 실제 범위 |
+| 단계 | 판정 | 증적과 실제 범위 |
 |---|---|---|
 | 인프라·Storage 정책 대응 | 완료 이력 및 현재 설정 확인 | Storage SecuredByPerimeter, NSP Enforced, Managed Network Active |
 | Data 등록·버전 관리 | 완료 | telco-churn / telco-churn-table 각각 v1/v2 |
@@ -28,8 +30,9 @@ Azure 리소스나 실행 코드는 변경하지 않았습니다.
 | 외부 학습 추적 | 완료 | 기존 외부 run FINISHED, telco-churn-external v1 |
 | Custom 환경 이미지 | 완료 | 현재 학습·HF 서빙 이미지의 Completed 빌드 Job과 ACR digest 대조 |
 | HF 모델 등록·CPU 배포 | 완료 | hf-minilm-ticket-router:1, Endpoint/blue Succeeded, traffic 100% |
-| 인증·실제 추론·오류 응답 | 기존 검증 기록 확인 | HTTP 200 및 의도 분류, 무인증 401, 잘못된 입력 424 |
-| 모니터링 연결 | 구성 확인 | Application Insights/Log Analytics 및 배포의 app_insights_enabled, 운영 경보 검증 아님 |
+| 인증·실제 추론·오류 응답 | 재호출 검증 완료 | 09:49 UTC `verify`에서 HTTP 200 및 의도 분류, 무인증 401, 잘못된 입력 424 |
+| 입력 언어·범주 한계 | 한계 확인 | 한국어 3문장이 모두 cancellation(2건 오분류), 범주와 무관한 문장도 한 범주로 분류 |
+| 모니터링 연결 | 호출 흔적 확인 | Endpoint 지표와 Application Insights에 요청 기록, 경보·SLO 검증 아님 |
 | GitHub CI | 기존 성공 이력 확인 | commit c3a81e9의 CI 성공, 학습·배포 자동화가 아닌 코드 검증 |
 | Studio 탭별 시각 검증 | 미검증 | 브라우저가 Microsoft 로그인 화면에 머물러 인증 후 화면 검증 필요 |
 
@@ -102,11 +105,11 @@ ACR까지 Private Endpoint로 연결되었다는 이전 설명은 실제 상태�
 재배포 전에 정책 적용 결과와 목표 설정을 확인해야 합니다.
 이번 검토에서는 인프라 코드를 수정하거나 재배포하지 않았습니다.
 
-## 기존 클라우드 E2E 검증 기록
+## 클라우드 E2E 및 Endpoint 호출 검증
 
-기존 `python -m demo.manage verify` 실행의 저장된 검증 기록을 확인했습니다.
-초기 기록은 2026-10-27 02:40 UTC이며, 현재 `local/verification.json`에 남은
-최근 완료 기록은 같은 날 09:25 UTC입니다. 이번 읽기 전용 검토에서 재호출하지 않았습니다.
+`python -m demo.manage verify`는 Pipeline·자산·Endpoint 상태를 확인한 뒤
+Endpoint를 실제로 호출합니다. 초기 기록은 2026-10-27 02:40 UTC이고,
+현재 `local/verification.json`에는 같은 날 09:49 UTC에 다시 실행한 결과가 남아 있습니다.
 
 | 검증 항목 | 실제 결과 |
 |---|---|
@@ -119,9 +122,15 @@ ACR까지 Private Endpoint로 연결되었다는 이전 설명은 실제 상태�
 | HF 모델 | hf-minilm-ticket-router v1, pinned MiniLM |
 | Online Endpoint / blue | Succeeded, Entra aad_token, traffic 100% |
 | 실제 추론 | billing / network / cancellation, HTTP 200 |
-| 최근 기록의 3회 왕복 지연 | 2.369 / 2.317 / 1.486초 |
+| 임베딩 차원 | 384 |
+| 상위 cosine similarity | 0.792 / 0.736 / 0.740 |
+| 3회 왕복 지연(09:49 UTC) | 0.893 / 0.685 / 0.748초 |
 | 무인증 요청 | HTTP 401 |
 | 빈 texts | 외부 HTTP 424, model-error-statuscode 400 |
+
+이전 실행의 3회 왕복 지연은 02:40 UTC에 1.795 / 1.618 / 0.650초,
+09:25 UTC에 2.369 / 2.317 / 1.486초였습니다.
+직렬 호출 3회의 클라이언트 왕복 시간이며 편차가 있으므로 성능 SLO로 사용하지 않습니다.
 
 학습 run의 MLflow start/end 기준 소요 시간은 Logistic 약 34.4초,
 Random Forest 약 115.6초였습니다. 이미지 빌드·Prepare·VM 대기 시간은 포함하지 않습니다.
@@ -132,6 +141,48 @@ MLflow adapter 1.61.0은 MLflow 2.22.2의 artifact API와 충돌했습니다.
 로컬에서 검증한 `azureml-mlflow==1.62.0.post6`으로 환경 v2를 만들어
 실제 클라우드 학습·artifact·모델 등록을 성공시켰습니다.
 실패 이력은 숨기지 않았으며 발표에는 위 Completed Job을 사용하세요.
+
+### 추가 호출 테스트
+
+`verify`의 고정 샘플 외에 같은 Entra token으로 별도 요청을 보냈습니다.
+요청과 응답 원문은 Git에 저장하지 않았으며 아래 표는 요약입니다.
+
+| 요청 | 결과 |
+|---|---|
+| 샘플에 없는 영문 4문장 | HTTP 200, billing / network / cancellation / billing, 약 1.2초 |
+| 동일 영문 문장 16개 | HTTP 200, 16개 예측 반환 |
+| 2,000자 문자열 | HTTP 200 |
+| 한국어 3문장(청구, 인터넷 장애, 해지) | HTTP 200, 3개 모두 cancellation, top similarity 0.075~0.083 |
+| 범주와 무관한 영문 1문장 | HTTP 200, billing, top similarity 0.040 |
+| 빈 배열, 공백 문장, 17개 문장, 2,001자, 문자열 texts, 숫자 항목, 추가 필드, JSON이 아닌 본문 | 외부 HTTP 424, model-error-statuscode 400 |
+| 토큰 없음 | HTTP 401, `Jwt is missing` |
+
+이 테스트는 동작 확인용 smoke test이며 정확도 평가가 아닙니다.
+영문 4문장의 기대 label은 테스트 작성자가 정했고 표본도 작습니다.
+이 문장들의 top similarity는 0.34~0.56으로 샘플 문장의 0.74~0.79보다 낮았습니다.
+
+[서빙 코드](../demo/serving/score.py)는 입력과 범주 설명 3개의 임베딩을
+cosine similarity로 비교해 가장 큰 범주를 반환합니다.
+신뢰도 임계값과 "기타" 범주가 없어 낮은 similarity에서도 항상 한 범주를 반환합니다.
+MiniLM은 영어 임베딩 모델이므로 한국어 청구·네트워크 문장은 cancellation으로 오분류되었습니다.
+한국어 시연이나 실제 업무에는 다국어 모델, 임계값과 "기타" 처리, 별도 품질 검증이 필요합니다.
+토큰화는 256 token에서 잘리므로 2,000자 입력 허용이 전체 문장 반영을 뜻하지 않습니다.
+
+배포 로그(`get_logs`)에는 거부된 요청의 `Rejected invalid scoring request: <사유>`
+WARNING만 보였고 요청 문장은 로그에 남지 않았습니다.
+성공 요청의 `Scored` INFO는 최근 600줄에서 보이지 않았으므로
+컨테이너 로그로 성공 건수를 세지 않습니다.
+
+Azure Monitor의 `RequestsPerMinute`에는 호출 후 1~2분 내에 HTTP 200, 401, 424가
+상태 코드별로 나타났고 `RequestLatency`에는 `blue` 값이 기록되었습니다.
+1분 Average 집계값은 실제 호출 수와 일치하지 않았으므로
+지표 수집 확인에만 사용하고 호출 수 검증에는 쓰지 않습니다.
+`RequestLatency`는 `deployment` 차원만 지원하여 상태 코드별로 나눌 수 없습니다.
+
+Application Insights에는 컨테이너에 도달한 `/score` 요청이 기록되었습니다.
+무인증 401 요청은 컨테이너에 도달하기 전에 거부되어 기록되지 않았습니다.
+요청 텔레메트리의 `resultCode`와 `duration`은 0으로 남으므로
+요청 수 확인에만 사용하고 성공률과 지연 분석에는 쓰지 않습니다.
 
 ## ACR Custom 이미지 빌드 검증
 
@@ -200,8 +251,7 @@ uv run --no-sync python -m demo.manage verify
 ```
 
 위 명령은 실제 추론 요청을 발생시키는 실행 명령이며 읽기 전용 상태 조회가 아닙니다.
-이번 검토에서는 실행하지 않았습니다.
-기존 요청 결과는 Git에서 제외된 `local/verification.json`에 남았습니다.
+2026-10-27 09:49 UTC 실행 결과는 Git에서 제외된 `local/verification.json`에 남았습니다.
 환경·코드만 갱신하려면 `components`를 사용하고 버전을 증가시키세요.
 기존 Data/Model 버전은 immutable이므로 `assets`나 전체 `all`을 기존 환경에서
 반복 실행하여 덮어쓰지 마세요. 새 학습은 `train`으로 제출할 수 있으나

@@ -35,6 +35,8 @@ Azure Machine Learning Studio에서 데이터 버전, 실험 비교, MLflow 모�
 > 생성형 LLM이나 한국어 품질 검증 모델이 아닙니다.
 > 영어 합성 상담 문장을 임베딩하고 프로토타입과 cosine similarity를 비교합니다.
 > similarity는 보정된 확률이 아니며 실제 고객 업무 판단에 사용하지 않습니다.
+> 한국어 3문장을 호출한 확인에서는 모두 `cancellation`으로 분류되었고,
+> 신뢰도 임계값과 "기타" 범주가 없어 무관한 문장도 한 범주로 분류됩니다.
 
 ## 아키텍처
 
@@ -158,13 +160,13 @@ AML이 관리하는 환경 이미지 빌드입니다. GitHub CI는 테스트·Bi
 
 ### 전체 MLOps 완료 범위
 
-기존 실행 이력과 현재 자산의 읽기 전용 조회로 다음 두 경로를 확인했습니다.
-이번 검토에서는 학습·배포·추론·테스트를 다시 실행하지 않았습니다.
+기존 실행 이력, 현재 자산 조회, 실제 Endpoint 호출로 다음 두 경로를 확인했습니다.
+이번 검토에서는 학습·이미지 빌드·배포·테스트를 다시 실행하지 않았습니다.
 
 * 학습 경로: Data v1/v2 등록 -> Prepare/Train Pipeline -> MLflow 추적·패키징 ->
   Job 완료 후 SDK로 churn 모델 v1/v2 등록
 * 서빙 경로: 사전학습 HF MiniLM 고정 revision -> 별도 custom model 등록 ->
-  ACR 환경 이미지 -> CPU Endpoint 배포 -> 기존 인증·추론 검증 기록
+  ACR 환경 이미지 -> CPU Endpoint 배포 -> 인증·추론 호출 검증
 
 `all`은 CLI에서 각 단계를 순서대로 호출하는 편의 명령입니다.
 AML Pipeline graph 자체는 Prepare -> Train이며,
