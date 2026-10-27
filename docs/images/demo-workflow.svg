@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-labelledby="title desc">
+  <title id="title">GitHub CI와 수동 Azure 실행 및 발표 Workflow</title>
+  <desc id="desc">GitHub Actions는 코드와 Bicep을 검사하지만 배포하지 않습니다. 운영자는 Azure 기반 환경과 네트워크를 준비하고 compute assets train external deploy verify 단계를 실행합니다. assets는 components 등록을 포함합니다. 발표에서는 완료된 Job과 Endpoint를 사용합니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#32658b"/></marker>
+    <style>
+      text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:16px}
+      .title{font-size:28px;font-weight:700}.heading{font-size:19px;font-weight:700}.small{font-size:14px;fill:#405b72}
+      .box{fill:#fff;stroke:#8daec6;stroke-width:1.5}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}
+      .command{font-family:Consolas,monospace;font-size:20px;font-weight:700;fill:#075b93}
+    </style>
+  </defs>
+  <rect width="1200" height="820" rx="16" fill="#fff"/>
+  <text x="32" y="46" class="title">개발 → Azure 실행 → 세션 시연 Workflow</text>
+  <text x="32" y="74" class="small">CI는 검증만 수행 | Azure 배포는 운영자가 CLI로 실행 | 기존 성공 이력을 활용한 빠른 발표</text>
+  <rect x="28" y="100" width="1144" height="144" rx="14" fill="#f1f5fa" stroke="#b8c9da"/>
+  <text x="48" y="132" class="heading">A / GitHub Actions CI</text>
+  <rect x="48" y="153" width="218" height="65" rx="8" class="box"/>
+  <text x="64" y="180">push / pull_request</text><text x="64" y="204" class="small">workflow_dispatch</text>
+  <rect x="308" y="153" width="218" height="65" rx="8" class="box"/>
+  <text x="324" y="180">uv sync --locked</text><text x="324" y="204" class="small">Python 3.11 / serving extra</text>
+  <rect x="568" y="153" width="270" height="65" rx="8" class="box"/>
+  <text x="584" y="180">Ruff check / format + pytest</text><text x="584" y="204" class="small">HF_MODEL_DIR 미설정 시 실모델 skip</text>
+  <rect x="880" y="153" width="272" height="65" rx="8" class="box"/>
+  <text x="896" y="180">az bicep build</text><text x="896" y="204" class="small">이미지 build / push / 배포 없음</text>
+  <path d="M266 186H308" class="edge"/>
+  <path d="M526 186H568" class="edge"/>
+  <path d="M838 186H880" class="edge"/>
+  <rect x="28" y="264" width="1144" height="332" rx="14" fill="#eef6ff" stroke="#83a9ca"/>
+  <text x="48" y="296" class="heading">B / 운영자 수동 실행: PowerShell + Azure CLI + SDK v2</text>
+  <text x="48" y="329">사전 준비: az login → Bicep validate / what-if / 배포 → RBAC → Managed Network provision</text>
+  <text x="48" y="357" class="small">기존 RG 재배포 전 실제 설정 차이 확인 | 각 단계 실패는 예외·종료 코드 확인 후 원인 수정</text>
+  <rect x="48" y="383" width="153" height="98" rx="8" class="box"/>
+  <text x="64" y="415" class="command">compute</text><text x="64" y="444">CPU cluster</text><text x="64" y="468" class="small">min 0 / max 2</text>
+  <rect x="238" y="383" width="180" height="98" rx="8" class="box"/>
+  <text x="254" y="415" class="command">assets</text><text x="254" y="444">Data / 환경</text><text x="254" y="468" class="small">Components도 등록</text>
+  <rect x="455" y="383" width="153" height="98" rx="8" class="box"/>
+  <text x="471" y="415" class="command">train</text><text x="471" y="444">Pipeline 2개</text><text x="471" y="468" class="small">MLflow 모델 등록</text>
+  <rect x="645" y="383" width="153" height="98" rx="8" class="box"/>
+  <text x="661" y="415" class="command">external</text><text x="661" y="444">PC CPU 학습</text><text x="661" y="468" class="small">AML MLflow 추적</text>
+  <rect x="835" y="383" width="153" height="98" rx="8" class="box"/>
+  <text x="851" y="415" class="command">deploy</text><text x="851" y="444">HF 모델 등록</text><text x="851" y="468" class="small">CPU 온라인 배포</text>
+  <rect x="1025" y="383" width="127" height="98" rx="8" class="box"/>
+  <text x="1041" y="415" class="command">verify</text><text x="1041" y="444">상태 + 호출</text><text x="1041" y="468" class="small">200 / 401 / 424</text>
+  <path d="M201 431H238" class="edge"/>
+  <path d="M418 431H455" class="edge"/>
+  <path d="M608 431H645" class="edge"/>
+  <path d="M798 431H835" class="edge"/>
+  <path d="M988 431H1025" class="edge"/>
+  <text x="48" y="520">uv run --no-sync python -m demo.manage &lt;action&gt;</text>
+  <text x="48" y="551" class="small">all = 위 6단계 순차 실행. components는 assets 내부에서 등록하며 별도 CLI로 재등록 가능.</text>
+  <text x="48" y="578" class="small">local/state.json: run ID / 단계 결과 | local/verification.json: 실제 호출 결과 | 둘 다 Git 제외</text>
+  <rect x="28" y="616" width="1144" height="172" rx="14" fill="#eaf7f5" stroke="#76ada7"/>
+  <text x="48" y="649" class="heading">C / 발표 당일: 준비된 결과로 Studio 탐색</text>
+  <text x="48" y="684">Data → Jobs / Experiments → Models → Environments / ACR → Endpoints Test / Consume / Logs</text>
+  <text x="48" y="718">학습 Job은 Completed 이력 사용 · Endpoint는 영어 샘플로 인증 호출 · 한국어 품질 한계 안내</text>
+  <text x="48" y="751" class="small">최초 이미지 빌드·VM 대기 비용을 고려해 사전 실행. train 재실행은 새 Job과 추가 비용을 발생시킴.</text>
+  <text x="48" y="775" class="small">Studio 탭의 시각적 검증은 아직 미완료. 포털 로그인 후 실제 화면을 확인해야 함.</text>
+</svg>

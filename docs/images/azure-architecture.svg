@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="880" viewBox="0 0 1200 880" role="img" aria-labelledby="title desc">
+  <title id="title">KT Azure ML 데모 배포 아키텍처</title>
+  <desc id="desc">개발 PC가 Entra 인증으로 Azure ML을 관리합니다. Managed Network의 CPU 학습과 온라인 서빙은 Storage 및 Key Vault Private Endpoint와 인증된 public ACR을 사용합니다. HF 서빙과 churn 학습은 별도 모델 경로입니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#32658b"/></marker>
+    <style>
+      text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:16px}
+      .title{font-size:28px;font-weight:700}.heading{font-size:19px;font-weight:700}.small{font-size:14px;fill:#405b72}
+      .box{fill:#fff;stroke:#8daec6;stroke-width:1.5}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}
+      .private{fill:none;stroke:#087e76;stroke-width:2.5;stroke-dasharray:7 5;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="880" rx="16" fill="#fff"/>
+  <text x="32" y="46" class="title">Azure ML 배포 아키텍처</text>
+  <text x="32" y="74" class="small">실제 데모 구성 | Korea Central | public ingress + Entra ID + 보호된 의존 리소스</text>
+  <rect x="28" y="104" width="235" height="165" rx="12" fill="#f1f5fa" stroke="#b8c9da"/>
+  <text x="46" y="136" class="heading">개발 / 발표 PC</text>
+  <text x="46" y="168">Azure CLI · SDK v2</text>
+  <text x="46" y="195">MLflow · 외부 CPU 학습</text>
+  <text x="46" y="239" class="small">GitHub: 코드 · 문서 · CI</text>
+  <path d="M263 178H324" class="edge"/>
+  <text x="272" y="154" class="small">Entra</text>
+  <rect x="324" y="104" width="848" height="680" rx="14" fill="#f6faff" stroke="#83a9ca" stroke-width="2"/>
+  <text x="344" y="134" class="heading">rg-kt-mlops / mlw-ktmlops-secure</text>
+  <rect x="344" y="154" width="808" height="102" rx="10" class="box"/>
+  <text x="364" y="185" class="heading">Azure ML Workspace / Studio</text>
+  <text x="364" y="213">Data · Components · Environments · Jobs / MLflow · Models</text>
+  <text x="364" y="238" class="small">제어 평면: 자산 버전 관리, Job 제출, 모델 등록, Endpoint 배포</text>
+  <rect x="344" y="286" width="808" height="274" rx="12" fill="#eaf7f5" stroke="#087e76" stroke-dasharray="7 5"/>
+  <text x="364" y="316" class="heading">AML Managed Network: AllowInternetOutbound</text>
+  <rect x="364" y="338" width="330" height="146" rx="10" class="box"/>
+  <text x="384" y="370" class="heading">CPU cluster: cpu-secure</text>
+  <text x="384" y="399">DS3_v2 · min 0 / max 2</text>
+  <text x="384" y="428">Prepare → Train · 환경 이미지 빌드</text>
+  <text x="384" y="460" class="small">학습 모델: telco-churn-classifier</text>
+  <rect x="754" y="338" width="378" height="146" rx="10" class="box"/>
+  <text x="774" y="370" class="heading">Online: kt-hf-cpu-secure / blue</text>
+  <text x="774" y="399">DS2_v2 CPU 1대 · traffic 100%</text>
+  <text x="774" y="428">HF MiniLM · 영어 intent 분류</text>
+  <text x="774" y="460" class="small">aad_token · public HTTPS ingress</text>
+  <text x="364" y="532" class="small">학습과 HF 서빙은 별도 lineage | 추론 시 HF 다운로드 없음 | 인터넷 완전 차단 아님</text>
+  <path d="M354 256V330H529V338" class="edge"/>
+  <path d="M1142 256V330H943V338" class="edge"/>
+  <rect x="28" y="338" width="235" height="146" rx="12" fill="#f1f5fa" stroke="#b8c9da"/>
+  <text x="46" y="370" class="heading">인증된 호출자</text>
+  <text x="46" y="400">Entra token + HTTPS</text>
+  <text x="46" y="431">문장 → intent / similarity</text>
+  <text x="46" y="460" class="small">무인증 요청: HTTP 401</text>
+  <path d="M263 411H300V278H1179V411H1132" class="edge"/>
+  <rect x="344" y="614" width="250" height="140" rx="10" class="box"/>
+  <text x="362" y="645" class="heading">Storage / NSP Enforced</text>
+  <text x="362" y="674">SecuredByPerimeter</text>
+  <text x="362" y="702">Blob / File: Private Endpoint</text>
+  <text x="362" y="732" class="small">합성 데이터 / 모델 artifact</text>
+  <rect x="614" y="614" width="224" height="140" rx="10" class="box"/>
+  <text x="632" y="645" class="heading">Key Vault / RBAC</text>
+  <text x="632" y="674">Private Endpoint</text>
+  <text x="632" y="702">public access: Disabled</text>
+  <text x="632" y="732" class="small">현재 배포된 실제 설정</text>
+  <rect x="858" y="614" width="294" height="140" rx="10" class="box"/>
+  <text x="876" y="645" class="heading">ACR Premium / Custom 이미지</text>
+  <text x="876" y="674">public + RBAC · PE 없음</text>
+  <text x="876" y="702">환경 빌드 push / 실행 시 pull</text>
+  <text x="876" y="732" class="small">admin / anonymous pull: Disabled</text>
+  <path d="M469 560V614" class="private"/>
+  <path d="M726 560V614" class="private"/>
+  <path d="M1005 614V560" class="edge"/>
+  <text x="356" y="591" class="small">Private dependency 경로</text>
+  <text x="863" y="591" class="small">인증된 public 이미지 경로</text>
+  <rect x="28" y="602" width="235" height="182" rx="12" fill="#fff7e8" stroke="#d4ae64"/>
+  <text x="46" y="635" class="heading">관측 / 검증</text>
+  <text x="46" y="669">Application Insights</text>
+  <text x="46" y="697">Log Analytics</text>
+  <text x="46" y="725">Endpoint metrics / logs</text>
+  <text x="46" y="760" class="small">수집 확인 ≠ 운영 SLO 검증</text>
+  <path d="M943 484V548H290V688H263" class="edge"/>
+  <text x="32" y="826" class="small">실선: 제어·호출·이미지·관측 연결 / 녹색 점선: Private Endpoint 의존 경로 (개념도, subnet 배치도 아님)</text>
+  <text x="32" y="852" class="small">주의: Key Vault의 실제 public Disabled 설정과 Bicep 선언 차이는 deployment-status 문서 참조</text>
+</svg>

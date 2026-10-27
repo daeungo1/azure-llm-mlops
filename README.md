@@ -40,27 +40,12 @@ Azure Machine Learning Studio에서 데이터 버전, 실험 비교, MLflow 모�
 
 ## 아키텍처
 
-```mermaid
-flowchart LR
-    Dev["개발 PC / 외부 학습 CPU"] -->|"Entra ID + SDK v2 / MLflow"| AML["Azure ML Workspace"]
-    Git["Public GitHub: 코드 · 문서 · CI"] --> Dev
-    Data["합성 CSV / MLTable v1 · v2"] --> AML
-    AML --> Pipe["Pipeline: Prepare -> Train"]
-    Pipe --> CPU["AML CPU cluster: min 0 / max 2"]
-    CPU -->|"Managed Network / Private Endpoint"| Runs["실험 · 지표 · Artifact"]
-    Runs --> Models["MLflow 모델 v1 · v2"]
-    HF["HF MiniLM pinned revision"] --> Registry["HF custom model asset"]
-    Registry --> Online["Managed Online Endpoint: DS2_v2 CPU 1대"]
-    Client["인증된 테스트 요청"] -->|"Entra token"| Online
-    Online --> Observe["Application Insights / Log Analytics"]
-    AML --- Blob["Blob Storage: NSP Enforced + Private Endpoint"]
-    AML --- ACR["ACR Premium: public + RBAC / admin disabled"]
-    AML --> Build["Custom 환경 이미지 빌드: cpu-secure"]
-    Build -->|"Docker build / push"| ACR
-    ACR -->|"Authenticated image pull"| CPU
-    ACR -->|"Authenticated image pull"| Online
-    AML --- KV["Key Vault: Private Endpoint / RBAC / public disabled"]
-```
+![Azure ML 아키텍처: Entra 인증, Managed Network, CPU 학습과 HF 서빙, 보호된 Storage 및 ACR 이미지 경로](docs/images/azure-architecture.svg)
+
+[아키텍처 SVG 원본 크게 보기](docs/images/azure-architecture.svg)
+
+실선은 제어·호출·이미지·관측 연결, 녹색 점선은 Private Endpoint 의존 경로입니다.
+네트워크 subnet 배치도가 아닌 리소스 및 연결 개념도입니다.
 
 기본 리전은 Korea Central입니다. 이 예제는 secure Workspace, public Studio/Endpoint ingress,
 Entra 인증 및 Storage/Key Vault의 private dependency 경로를 사용하는 교육 환경입니다.
@@ -70,6 +55,37 @@ Managed Network는 `AllowInternetOutbound`이므로 완전한 인터넷 차단 �
 GPU, Slurm/Lustre, 과제별 다중 Workspace 격리와 운영 HA는 배포하지 않습니다.
 외부 추적은 Slurm과 같은 위치 독립적인 MLflow 패턴을 PC에서 재현하며,
 실제 Slurm 통합 검증을 대신하지 않습니다.
+
+## MLOps Pipeline
+
+![MLOps Pipeline: Data v1 기반 Prepare와 Train, MLflow 모델 등록, 외부 CPU 추적 및 별도 HF 서빙 경로](docs/images/mlops-pipeline.svg)
+
+[Pipeline SVG 원본 크게 보기](docs/images/mlops-pipeline.svg)
+
+* 클라우드 학습: 동일 Data v1 holdout으로 Logistic과 Random Forest를 비교합니다.
+  AML Pipeline graph는 Prepare -> Train이며 모델 등록은 Job 완료 후 SDK에서 수행합니다.
+* 외부 학습: Data v2로 PC에서 학습하고 같은 Workspace의 MLflow에 기록합니다.
+  Data v1 실험과 평가 데이터가 달라 성능 순위를 직접 비교하지 않습니다.
+* HF 서빙: 사전학습 MiniLM을 별도로 등록·배포합니다.
+  churn 학습 출력의 자동 배포나 LLM fine-tuning 경로가 아닙니다.
+
+## 실행 Workflow
+
+![실행 Workflow: GitHub CI 검증과 운영자 수동 Azure 실행, 발표 당일 Studio 탐색 순서](docs/images/demo-workflow.svg)
+
+[Workflow SVG 원본 크게 보기](docs/images/demo-workflow.svg)
+
+GitHub Actions는 Ruff·pytest·Bicep build를 수행하며 클라우드 배포는 하지 않습니다.
+운영자가 기반 리소스와 Managed Network를 준비한 뒤
+`compute -> assets -> train -> external -> deploy -> verify`를 실행합니다.
+`assets`는 Components 등록을 포함하며 `all`은 이 여섯 단계를 순서대로 호출합니다.
+환경 이미지 빌드는 AML이 수행하고 ACR에 저장하므로 CI 이미지 빌드와 구분합니다.
+
+발표에서는 준비된 Completed Job과 Endpoint를 먼저 사용하세요.
+정확한 실행 명령은 아래 [시작하기](#시작하기),
+탭별 진행은 [교육 진행 가이드](docs/session-guide.md),
+실제 결과와 한계는 [배포 검증 결과](docs/deployment-status.md)에서 확인할 수 있습니다.
+세 SVG는 외부 이미지·폰트·스크립트 없이 GitHub README에서 직접 표시됩니다.
 
 ## 시작하기
 
