@@ -1,7 +1,7 @@
 ---
 title: AML 기반 MLOps 및 모델 서빙 진행 가이드
 description: 강사용 개념 정리, Studio 탭별 시연, 외부 MLflow 추적과 CPU Endpoint 실습
-ms.date: 2026-10-26
+ms.date: 2026-10-27
 ---
 
 ## 권장 진행 순서
@@ -9,6 +9,9 @@ ms.date: 2026-10-26
 `mlw-ktmlops-secure` Workspace에서 시연합니다.
 [배포 상태](deployment-status.md)의 실제 검증 결과를 먼저 확인하세요.
 학습은 소규모 CPU 분류기이며 HF 모델의 continual fine-tuning은 아닙니다.
+학습한 churn 모델을 그대로 배포하는 단일 파이프라인도 아닙니다.
+학습·등록 경로와 별도의 HF 서빙 경로를 구분해 설명하고,
+[완료 범위와 미구현 항목](deployment-status.md#전체-mlops-파이프라인-검토-결론)을 확인하세요.
 
 | 구간 | 내용 | 시연 핵심 |
 |---|---|---|
@@ -32,7 +35,9 @@ MLOps는 여기에 학습 데이터의 버전과 스키마, 실험의 매개변�
 ## 세션 전 점검
 
 1. Azure 계정과 데모 Workspace의 접근 권한을 확인합니다.
-2. `uv run --no-sync python -m demo.manage verify`를 실행합니다.
+2. 기존 자산의 상태만 검토할 때는 저장된 검증 기록과 Completed Job을 확인합니다.
+   새 추론 검증이 필요한 경우에만 `uv run --no-sync python -m demo.manage verify`를
+   별도로 실행합니다. 이 명령은 실제 Endpoint를 호출하므로 읽기 전용 조회가 아닙니다.
 3. Studio에서 Data, Jobs, Models, Components, Environments, Compute, Endpoints를 엽니다.
 4. `kt-hf-cpu-secure`의 `blue` 상태가 Succeeded, 트래픽이 100%인지 확인합니다.
 5. 이미지 빌드와 학습을 발표 현장에서 처음 실행하지 않습니다.
@@ -120,6 +125,26 @@ Compute의 `cpu-secure`에서 min=0, max=2, DS3_v2를 확인합니다.
 대기 중 0대인 상태는 정상이며 온라인 Endpoint CPU와 별개입니다.
 Components에서 prepare/train의 입력·출력 계약을,
 Environments에서 학습용과 서빙용의 패키지 버전을 확인합니다.
+
+### Environments와 ACR 이미지 연결
+
+1. Environments에서 `kt-sklearn-mlflow` v2와 `kt-hf-cpu` v1을 선택합니다.
+2. 기본 MCR 이미지와 Conda 정의를 확인하고 환경별 build log를 엽니다.
+3. 현재 학습의 `imgbldrun_b6f62eb`, 서빙의 `imgbldrun_73d816a`가
+   Completed인지 확인합니다. 로그의 Docker build와 push digest를 보여줍니다.
+4. Azure Portal에서 ACR `crktmlopsaow7cshia2xmu`의 Repositories를 엽니다.
+   [실제 이미지 매핑](deployment-status.md#acr-custom-이미지-빌드-검증)의
+   repository/tag/digest와 비교합니다.
+5. Pipeline 학습 노드의 환경 v2 및 Endpoint `blue`의 환경 v1로 돌아가
+   환경 정의 -> 이미지 빌드·저장 -> 학습/서빙 연결을 설명합니다.
+
+이 빌드는 AML이 생성한 Dockerfile을 `cpu-secure`에서 실행한 것입니다.
+ACR Tasks에서 직접 빌드했거나 GitHub CI가 이미지를 push했다고 설명하지 않습니다.
+이미지 태그 번호와 Environment 버전은 같다고 가정하지 마세요.
+이전 환경 v1도 이미지 빌드는 Completed이지만 MLflow 런타임 호환성 문제가 있으므로
+현재 학습 예제는 환경 v2를 사용합니다.
+현재 ACR은 인증 기반 public 접근이며 Private Endpoint는 없습니다.
+Storage/Key Vault의 Managed Network Private Endpoint 경로와 혼동하지 않습니다.
 
 Notebooks, AutoML, Designer 편집기, Responsible AI, Batch Endpoint,
 드리프트 모니터는 이번 실습의 완료 조건이 아닙니다.

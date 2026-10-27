@@ -1,8 +1,57 @@
 ---
 title: 실제 Azure 배포 상태
-description: 정책 준수 네트워크 구성과 실제 클라우드 학습·모델·추론 검증 결과
+description: 교육 MLOps 완료 범위, 실제 ACR 이미지와 네트워크 설정 및 기존 검증 결과
 ms.date: 2026-10-27
 ---
+
+## 전체 MLOps 파이프라인 검토 결론
+
+요청한 교육 Agenda의 Data/Model 관리, CPU 학습, MLflow 추적,
+HF CPU Endpoint 생성·추론은 완료 이력을 확인했습니다.
+다만 동일한 학습 모델을 등록한 뒤 서빙하는 단일 연속 파이프라인이나
+운영용 MLOps 전체 자동화가 완료된 것은 아닙니다.
+
+이번 검토는 기존 코드·실행 로그·저장된 검증 기록과
+현재 Azure 자산·Job 상태의 읽기 전용 조회를 대상으로 했습니다.
+학습·이미지 빌드·배포·추론 호출·테스트를 새로 실행하지 않았으며,
+Azure 리소스나 실행 코드는 변경하지 않았습니다.
+포털 시각적 검증이나 운영 품질 인증을 대체하는 판정은 아닙니다.
+
+| 단계 | 판정 | 기존 증적과 실제 범위 |
+|---|---|---|
+| 인프라·Storage 정책 대응 | 완료 이력 및 현재 설정 확인 | Storage SecuredByPerimeter, NSP Enforced, Managed Network Active |
+| Data 등록·버전 관리 | 완료 | telco-churn / telco-churn-table 각각 v1/v2 |
+| 환경·Component 등록 | 완료 | kt-sklearn-mlflow:2, prepare/train:2 |
+| 데이터 준비·CPU 학습 | 완료 | Logistic / Forest Pipeline 두 개 모두 Completed |
+| MLflow 실험·패키징 | 완료 이력 확인 | 지표, confusion matrix, signature, input example, MLflow model |
+| 학습 모델 등록 | 완료 | telco-churn-classifier v1/v2, Job 완료 후 SDK 등록 |
+| 외부 학습 추적 | 완료 | 기존 외부 run FINISHED, telco-churn-external v1 |
+| Custom 환경 이미지 | 완료 | 현재 학습·HF 서빙 이미지의 Completed 빌드 Job과 ACR digest 대조 |
+| HF 모델 등록·CPU 배포 | 완료 | hf-minilm-ticket-router:1, Endpoint/blue Succeeded, traffic 100% |
+| 인증·실제 추론·오류 응답 | 기존 검증 기록 확인 | HTTP 200 및 의도 분류, 무인증 401, 잘못된 입력 424 |
+| 모니터링 연결 | 구성 확인 | Application Insights/Log Analytics 및 배포의 app_insights_enabled, 운영 경보 검증 아님 |
+| GitHub CI | 기존 성공 이력 확인 | commit c3a81e9의 CI 성공, 학습·배포 자동화가 아닌 코드 검증 |
+| Studio 탭별 시각 검증 | 미검증 | 브라우저가 Microsoft 로그인 화면에 머물러 인증 후 화면 검증 필요 |
+
+### 단일 학습 모델의 E2E와 구분
+
+[학습 코드](../demo/pipeline.py)의 AML Pipeline graph는 Prepare -> Train입니다.
+두 Job의 완료를 기다린 뒤 SDK가 churn 모델 v1/v2를 등록합니다.
+[서빙 코드](../demo/endpoint.py)는 학습된 churn 모델이 아니라
+별도의 사전학습 HF MiniLM을 등록하고 배포합니다.
+`all`은 이들을 순차 호출하는 CLI이며 모델 승격을 자동화하는 CD 파이프라인은 아닙니다.
+
+다음 항목은 미구현이거나 이번 교육 범위에 포함하지 않았습니다.
+
+* 학습한 churn 모델의 Endpoint 배포 및 동일 모델 lineage의 학습 -> 등록 -> 서빙 연결
+* 품질 임계값에 따른 자동 최적 모델 선택, 승인, 승격, canary 및 자동 롤백
+* 데이터·모델 드리프트 감지, 재학습 trigger와 스케줄
+* GitHub OIDC 기반 Azure 학습·이미지 빌드·배포 CD
+* HF 모델 continual fine-tuning, 생성형 LLM 및 한국어 품질 검증
+* 운영 경보·SLO, 부하/장애·복구 테스트, 다중 인스턴스 HA
+
+위 항목까지 포함해 "운영용 전체 MLOps 완료"라고 설명하지 않습니다.
+현재 완료 판정은 교육 Agenda의 두 별도 학습·서빙 경로를 기준으로 합니다.
 
 ## 배포 완료
 
@@ -37,14 +86,27 @@ Workspace가 identity 기반 datastore의 Blob/File 역할을 자동 생성하�
 
 NSP만으로는 AML 이미지 빌드의 SAS 코드 다운로드가 차단되었습니다.
 이를 해결하기 위해 새 Workspace에 `AllowInternetOutbound` Managed Network를
-구성하고 Storage Blob/File, Key Vault, Premium ACR의 Private Endpoint를 사용합니다.
+구성하고 Storage Blob/File과 Key Vault의 Active Private Endpoint 규칙을 사용합니다.
 기존 compute가 있는 Workspace는 Managed Network 전환이 거부되므로
 기존 리소스를 삭제하지 않고 `-secure` Workspace를 생성했습니다.
-정책은 삭제·해제·예외 처리하지 않았습니다. Studio와 Endpoint ingress만 public입니다.
+정책은 삭제·해제·예외 처리하지 않았습니다.
 
-## 클라우드 E2E 검증 완료
+현재 조회 결과 ACR Premium은 public access Enabled, admin/anonymous pull Disabled이며
+Private Endpoint connection은 없습니다. 이미지 push/pull은 인증 기반 public 경로입니다.
+Studio와 Endpoint ingress도 public이며 Key Vault의 실제 public access는 Disabled입니다.
+ACR까지 Private Endpoint로 연결되었다는 이전 설명은 실제 상태에 맞춰 정정했습니다.
+`AllowInternetOutbound`는 일반 인터넷 egress를 허용하므로 완전한 private-only 환경은 아닙니다.
 
-2026-10-27 02:40 UTC에 `python -m demo.manage verify`가 성공했습니다.
+[Bicep 템플릿](../infra/main.bicep)은 Key Vault public access를 Enabled로 선언하지만
+실제 배포 상태는 Disabled입니다. 템플릿과 실제 유효 설정을 동일하다고 가정하지 말고
+재배포 전에 정책 적용 결과와 목표 설정을 확인해야 합니다.
+이번 검토에서는 인프라 코드를 수정하거나 재배포하지 않았습니다.
+
+## 기존 클라우드 E2E 검증 기록
+
+기존 `python -m demo.manage verify` 실행의 저장된 검증 기록을 확인했습니다.
+초기 기록은 2026-10-27 02:40 UTC이며, 현재 `local/verification.json`에 남은
+최근 완료 기록은 같은 날 09:25 UTC입니다. 이번 읽기 전용 검토에서 재호출하지 않았습니다.
 
 | 검증 항목 | 실제 결과 |
 |---|---|
@@ -57,7 +119,7 @@ NSP만으로는 AML 이미지 빌드의 SAS 코드 다운로드가 차단되었�
 | HF 모델 | hf-minilm-ticket-router v1, pinned MiniLM |
 | Online Endpoint / blue | Succeeded, Entra aad_token, traffic 100% |
 | 실제 추론 | billing / network / cancellation, HTTP 200 |
-| 3회 왕복 지연 | 1.795 / 1.618 / 0.650초 |
+| 최근 기록의 3회 왕복 지연 | 2.369 / 2.317 / 1.486초 |
 | 무인증 요청 | HTTP 401 |
 | 빈 texts | 외부 HTTP 424, model-error-statuscode 400 |
 
@@ -70,6 +132,59 @@ MLflow adapter 1.61.0은 MLflow 2.22.2의 artifact API와 충돌했습니다.
 로컬에서 검증한 `azureml-mlflow==1.62.0.post6`으로 환경 v2를 만들어
 실제 클라우드 학습·artifact·모델 등록을 성공시켰습니다.
 실패 이력은 숨기지 않았으며 발표에는 위 Completed Job을 사용하세요.
+
+## ACR Custom 이미지 빌드 검증
+
+연결된 Premium ACR `crktmlopsaow7cshia2xmu.azurecr.io`에
+학습·서빙 의존성이 설치된 Custom 이미지가 실제 저장되어 있습니다.
+AML은 MCR 기본 이미지와 Conda 정의로 Dockerfile을 생성하고,
+`cpu-secure`에서 빌드한 뒤 ACR에 push합니다.
+직접 작성한 Dockerfile이나 ACR Tasks의 `az acr build` 실행 결과는 아닙니다.
+
+아래 매핑은 Completed 이미지 빌드 Job의 `docker build` 명령,
+패키지 설치 내역 및 push digest를 ACR 태그 조회 결과와 대조했습니다.
+ACR 이미지 태그 번호는 AML Environment 버전과 별개이며,
+각 repository의 `latest`도 같은 digest를 가리키지만 변경 가능한 태그입니다.
+
+| 용도 / AML Environment | ACR repository:tag | 이미지 빌드 Job | 상태 |
+|---|---|---|---|
+| 현재 학습 / kt-sklearn-mlflow:2 | azureml/azureml_882df10a7bff22e2d69b3fa30657dfa5:1 | imgbldrun_b6f62eb | Completed |
+| 현재 HF 서빙 / kt-hf-cpu:1 | azureml/azureml_8bb3369a9b31112c26f6a1f2ebd3b2f4:1 | imgbldrun_73d816a | Completed |
+| 이전 학습 / kt-sklearn-mlflow:1 | azureml/azureml_4bb4598bf36822bb5d652caa849d434b:2 | imgbldrun_855134a | Completed |
+
+이미지 식별에는 다음 불변 digest를 사용합니다.
+
+```text
+현재 학습
+crktmlopsaow7cshia2xmu.azurecr.io/azureml/azureml_882df10a7bff22e2d69b3fa30657dfa5@sha256:6efeaac01755aa7c319f811428a77fa48afd0d12ebe8c3caedf16e94254e3781
+
+현재 HF 서빙
+crktmlopsaow7cshia2xmu.azurecr.io/azureml/azureml_8bb3369a9b31112c26f6a1f2ebd3b2f4@sha256:98cbf092716a30d90c6be880ff1806724da5b449e050885c68ada550fd69b646
+
+이전 학습
+crktmlopsaow7cshia2xmu.azurecr.io/azureml/azureml_4bb4598bf36822bb5d652caa849d434b@sha256:e7d86960637b36807ad8df6735a737114312b37d4c0f7c7583a792df3a4a2ebf
+```
+
+현재 학습 이미지에는 `azureml-mlflow==1.62.0.post6`와 `mlflow==2.22.2`,
+HF 서빙 이미지에는 `torch==2.8.0+cpu`, `transformers==4.57.6`,
+`azureml-inference-server-http==1.5.0`이 설치되었습니다.
+이전 학습 이미지는 빌드 자체는 성공했지만 MLflow adapter 1.61.0의
+런타임 호환성 문제로 현재 학습에는 사용하지 않습니다.
+이미지 빌드 성공과 모델 학습 성공은 별개의 검증 항목입니다.
+
+이미지 태그와 digest는 다음 읽기 전용 명령으로 확인할 수 있습니다.
+
+```powershell
+az acr repository list --name crktmlopsaow7cshia2xmu -o table
+az acr repository show-tags --name crktmlopsaow7cshia2xmu `
+  --repository azureml/azureml_882df10a7bff22e2d69b3fa30657dfa5 `
+  --detail --query "[].{tag:name,digest:digest}" -o table
+```
+
+Studio의 Environments에서 환경별 build log를 확인하고,
+Azure Portal의 ACR Repositories에서 같은 repository/tag/digest를 보여주세요.
+학습 Job과 온라인 배포는 해당 환경 이미지를 사용하며,
+실제 학습 완료와 Endpoint 추론 성공은 위 E2E 결과로 별도 검증했습니다.
 
 ## 발표 및 재실행
 
@@ -84,7 +199,9 @@ HF MiniLM은 별도 사전학습 임베딩 모델이며 continual fine-tuning은
 uv run --no-sync python -m demo.manage verify
 ```
 
-실제 요청 결과는 Git에서 제외된 `local/verification.json`에 남았습니다.
+위 명령은 실제 추론 요청을 발생시키는 실행 명령이며 읽기 전용 상태 조회가 아닙니다.
+이번 검토에서는 실행하지 않았습니다.
+기존 요청 결과는 Git에서 제외된 `local/verification.json`에 남았습니다.
 환경·코드만 갱신하려면 `components`를 사용하고 버전을 증가시키세요.
 기존 Data/Model 버전은 immutable이므로 `assets`나 전체 `all`을 기존 환경에서
 반복 실행하여 덮어쓰지 마세요. 새 학습은 `train`으로 제출할 수 있으나
@@ -108,3 +225,8 @@ uv run --no-sync python -m demo.manage verify
 Ruff lint와 format 검사를 통과했습니다.
 MLflow 및 관련 라이브러리의 deprecation 경고는 남아 있습니다.
 이 결과는 로컬 검증이며 Azure Endpoint 검증을 대신하지 않습니다.
+이번 문서 검토에서 테스트·lint·Bicep build를 재실행하지 않았습니다.
+기존 GitHub CI 성공은 [run 40440292071](https://github.com/daeungo1/azure-llm-mlops/actions/runs/40440292071)에서 확인했습니다.
+해당 CI 로그의 pytest 결과는 23 passed, 1 skipped입니다.
+CI에는 `HF_MODEL_DIR` 설정이 없으므로 선택적 실제 HF 모델 테스트는 skip되며,
+CI 성공을 실제 모델 추론 테스트까지 모두 실행한 결과로 해석하지 않습니다.

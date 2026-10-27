@@ -1,7 +1,7 @@
 ---
 title: Azure ML CPU MLOps Demo
 description: 합성 통신 데이터와 MLflow, Azure ML SDK v2, Hugging Face CPU 서빙 실습
-ms.date: 2026-10-26
+ms.date: 2026-10-27
 ---
 
 ## 무엇을 시연하나요
@@ -9,8 +9,11 @@ ms.date: 2026-10-26
 > [!IMPORTANT]
 > 현재 데모 Workspace는 `mlw-ktmlops-secure`입니다.
 > Storage는 NSP `SecuredByPerimeter` 및 Enforced 규칙으로 보호하고,
-> AML 연산은 Managed Network의 Private Endpoint를 사용합니다.
+> AML의 Storage/Key Vault 접근은 Managed Network의 Private Endpoint를 사용합니다.
 > [실제 배포 상태와 검증 결과](docs/deployment-status.md)를 먼저 확인하세요.
+> 교육 Agenda의 데이터·학습·등록·HF 서빙은 완료 이력을 확인했습니다.
+> 학습한 churn 모델과 서빙하는 HF 모델은 별도 경로입니다.
+> 동일 학습 모델의 자동 배포나 운영용 MLOps 전체 자동화가 완료된 구성은 아닙니다.
 
 Azure Machine Learning Studio에서 데이터 버전, 실험 비교, MLflow 모델 패키지,
 파이프라인 실행 이력, 실시간 CPU 서빙을 연결해서 확인하는 교육용 저장소입니다.
@@ -23,6 +26,7 @@ Azure Machine Learning Studio에서 데이터 버전, 실험 비교, MLflow 모�
 | MLflow 실험 추적 | 동일 holdout의 Logistic / Random Forest 비교 | Jobs, Experiments |
 | 모델 패키징·등록 | Signature, input example, metrics, confusion matrix | Models, Jobs의 Outputs + logs |
 | AML 파이프라인 | 데이터 준비 -> 학습 -> 모델 출력 | Jobs의 pipeline graph, Components |
+| Custom 환경 이미지 빌드 | 학습·서빙 의존성을 이미지로 빌드하고 ACR에 저장 | Environments의 build log, Azure Portal의 ACR Repositories |
 | 외부 학습 연계 | 로컬 CPU 학습을 AML MLflow에 기록 | Jobs의 `kt-external-mlflow` |
 | HF 소형 CPU 모델 서빙 | 상담 문장 3개 intent 분류 | Models, Endpoints의 Test/Consume/Logs |
 
@@ -48,12 +52,19 @@ flowchart LR
     Client["인증된 테스트 요청"] -->|"Entra token"| Online
     Online --> Observe["Application Insights / Log Analytics"]
     AML --- Blob["Blob Storage: NSP Enforced + Private Endpoint"]
-    AML --- ACR["ACR Premium: Private Endpoint / admin disabled"]
-    AML --- KV["Key Vault: RBAC / purge protection"]
+    AML --- ACR["ACR Premium: public + RBAC / admin disabled"]
+    AML --> Build["Custom 환경 이미지 빌드: cpu-secure"]
+    Build -->|"Docker build / push"| ACR
+    ACR -->|"Authenticated image pull"| CPU
+    ACR -->|"Authenticated image pull"| Online
+    AML --- KV["Key Vault: Private Endpoint / RBAC / public disabled"]
 ```
 
 기본 리전은 Korea Central입니다. 이 예제는 secure Workspace, public Studio/Endpoint ingress,
-Entra 인증 및 private dependency egress를 사용하는 교육 환경입니다.
+Entra 인증 및 Storage/Key Vault의 private dependency 경로를 사용하는 교육 환경입니다.
+ACR은 public access Enabled이며 Private Endpoint는 없습니다.
+이미지 push/pull은 인증과 RBAC으로 제한하며 ACR admin과 anonymous pull은 비활성화했습니다.
+Managed Network는 `AllowInternetOutbound`이므로 완전한 인터넷 차단 환경이 아닙니다.
 GPU, Slurm/Lustre, 과제별 다중 Workspace 격리와 운영 HA는 배포하지 않습니다.
 외부 추적은 Slurm과 같은 위치 독립적인 MLflow 패턴을 PC에서 재현하며,
 실제 Slurm 통합 검증을 대신하지 않습니다.
@@ -129,6 +140,39 @@ HF MiniLM은 학습한 churn 모델이 아니며 두 모델의 lineage를 혼동
 발표에서는 준비된 Job과 Endpoint를 먼저 보여주세요. 학습 자체와 달리
 최초 Conda 이미지 빌드, 네트워크 및 VM provisioning은 수 분 이상 걸릴 수 있습니다.
 
+### ACR Custom 이미지 빌드
+
+[학습 환경](environments/training.yml)과 [서빙 환경](environments/serving.yml)의
+Conda/pip 의존성을 MCR 기본 이미지 위에 설치하도록 AML이 Dockerfile을 생성합니다.
+`cpu-secure`에서 이미지 빌드를 수행하고 연결된 ACR
+`crktmlopsaow7cshia2xmu.azurecr.io`에 push합니다.
+학습 Job과 온라인 배포는 인증된 ACR public 경로로 각 환경의 이미지를 pull합니다.
+기본 이미지만 참조한 것이 아니라 실제 의존성이 설치된 Custom 이미지가 저장되어 있습니다.
+
+현재 학습은 `kt-sklearn-mlflow:2`, HF 서빙은 `kt-hf-cpu:1`을 사용합니다.
+두 이미지의 Completed 빌드 Job과 불변 digest는
+[실제 배포 상태](docs/deployment-status.md#acr-custom-이미지-빌드-검증)에 기록했습니다.
+수동 Dockerfile이나 `az acr build`를 이용한 ACR Tasks 빌드가 아니라
+AML이 관리하는 환경 이미지 빌드입니다. GitHub CI는 테스트·Bicep 검증을 수행하며
+이미지 빌드·push를 자동 실행하지 않습니다.
+
+### 전체 MLOps 완료 범위
+
+기존 실행 이력과 현재 자산의 읽기 전용 조회로 다음 두 경로를 확인했습니다.
+이번 검토에서는 학습·배포·추론·테스트를 다시 실행하지 않았습니다.
+
+* 학습 경로: Data v1/v2 등록 -> Prepare/Train Pipeline -> MLflow 추적·패키징 ->
+  Job 완료 후 SDK로 churn 모델 v1/v2 등록
+* 서빙 경로: 사전학습 HF MiniLM 고정 revision -> 별도 custom model 등록 ->
+  ACR 환경 이미지 -> CPU Endpoint 배포 -> 기존 인증·추론 검증 기록
+
+`all`은 CLI에서 각 단계를 순서대로 호출하는 편의 명령입니다.
+AML Pipeline graph 자체는 Prepare -> Train이며,
+등록한 churn 모델의 배포 단계까지 연결된 단일 그래프가 아닙니다.
+자동 최적 모델 선택·품질 기준 승인·승격/롤백·드리프트 기반 재학습·클라우드 CD는
+구현하지 않았습니다. Studio 로그인 후 탭별 시각적 검증도 남아 있습니다.
+[완료 판정과 한계](docs/deployment-status.md#전체-mlops-파이프라인-검토-결론)를 확인하세요.
+
 ### 패키지 다운로드 환경
 
 작업 PC에서 PyPI 파일 호스트 TLS 연결이 실패하여 public PyPI mirror를 사용했습니다.
@@ -182,4 +226,4 @@ Key Vault purge protection 때문에 삭제 후에도 보존 기간 동안 이�
 
 * [교육 진행 가이드와 Studio 탭 순서](docs/session-guide.md)
 * [현재 기능에 대한 공식 근거](docs/research.md)
-* [실행 검증 결과](docs/validation.md)
+* [실행 검증 결과와 전체 MLOps 완료 범위](docs/deployment-status.md)
