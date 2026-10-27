@@ -6,12 +6,11 @@ ms.date: 2026-10-26
 
 ## 무엇을 시연하나요
 
-> [!WARNING]
-> 2026-10-26 실제 배포는 기본 인프라와 CPU 클러스터까지 완료했습니다.
-> 상위 Azure Policy가 Storage의 public 접근을 강제로 차단하여
-> 클라우드 Data/Model 등록, 학습 Job, Endpoint 생성·검증은 완료하지 못했습니다.
-> 아래 표는 구현된 시나리오의 목표이며 현재 포털에 모든 자산이 있다는 뜻이 아닙니다.
-> [실제 배포 상태와 차단 해소 절차](docs/deployment-status.md)를 먼저 확인하세요.
+> [!IMPORTANT]
+> 현재 데모 Workspace는 `mlw-ktmlops-secure`입니다.
+> Storage는 NSP `SecuredByPerimeter` 및 Enforced 규칙으로 보호하고,
+> AML 연산은 Managed Network의 Private Endpoint를 사용합니다.
+> [실제 배포 상태와 검증 결과](docs/deployment-status.md)를 먼저 확인하세요.
 
 Azure Machine Learning Studio에서 데이터 버전, 실험 비교, MLflow 모델 패키지,
 파이프라인 실행 이력, 실시간 CPU 서빙을 연결해서 확인하는 교육용 저장소입니다.
@@ -42,20 +41,20 @@ flowchart LR
     Data["합성 CSV / MLTable v1 · v2"] --> AML
     AML --> Pipe["Pipeline: Prepare -> Train"]
     Pipe --> CPU["AML CPU cluster: min 0 / max 2"]
-    CPU --> Runs["실험 · 지표 · Artifact"]
+    CPU -->|"Managed Network / Private Endpoint"| Runs["실험 · 지표 · Artifact"]
     Runs --> Models["MLflow 모델 v1 · v2"]
     HF["HF MiniLM pinned revision"] --> Registry["HF custom model asset"]
     Registry --> Online["Managed Online Endpoint: DS2_v2 CPU 1대"]
     Client["인증된 테스트 요청"] -->|"Entra token"| Online
     Online --> Observe["Application Insights / Log Analytics"]
-    AML --- Blob["Blob Storage: identity / no anonymous access"]
-    AML --- ACR["ACR Basic: admin disabled"]
+    AML --- Blob["Blob Storage: NSP Enforced + Private Endpoint"]
+    AML --- ACR["ACR Premium: Private Endpoint / admin disabled"]
     AML --- KV["Key Vault: RBAC / purge protection"]
 ```
 
-기본 리전은 Korea Central입니다. 이 예제는 단일 Workspace, public network,
-Entra 인증을 사용하는 교육 환경입니다.
-Private Link, GPU, Slurm/Lustre, 과제별 다중 Workspace 격리와 운영 HA는 배포하지 않습니다.
+기본 리전은 Korea Central입니다. 이 예제는 secure Workspace, public Studio/Endpoint ingress,
+Entra 인증 및 private dependency egress를 사용하는 교육 환경입니다.
+GPU, Slurm/Lustre, 과제별 다중 Workspace 격리와 운영 HA는 배포하지 않습니다.
 외부 추적은 Slurm과 같은 위치 독립적인 MLflow 패턴을 PC에서 재현하며,
 실제 Slurm 통합 검증을 대신하지 않습니다.
 
@@ -74,18 +73,29 @@ uv run --no-sync pytest -q
 az group create --name rg-kt-mlops --location koreacentral
 $operatorId = az ad signed-in-user show --query id -o tsv
 az bicep build --file infra\main.bicep
+$operatorPrefix = "<your-public-egress-ipv4>/32"
 az deployment group validate --resource-group rg-kt-mlops `
-  --template-file infra\main.bicep --parameters operatorPrincipalId=$operatorId
+  --template-file infra\main.bicep `
+  --parameters operatorPrincipalId=$operatorId operatorAddressPrefix=$operatorPrefix
 az deployment group what-if --resource-group rg-kt-mlops `
-  --template-file infra\main.bicep --parameters operatorPrincipalId=$operatorId
+  --template-file infra\main.bicep `
+  --parameters operatorPrincipalId=$operatorId operatorAddressPrefix=$operatorPrefix
 az deployment group create --name kt-mlops-foundation `
   --resource-group rg-kt-mlops --template-file infra\main.bicep `
-  --parameters operatorPrincipalId=$operatorId
+  --parameters operatorPrincipalId=$operatorId operatorAddressPrefix=$operatorPrefix
 
 New-Item -ItemType Directory -Force local | Out-Null
 az deployment group show --resource-group rg-kt-mlops `
   --name kt-mlops-foundation --query properties.outputs.config.value -o json |
   Set-Content -Encoding utf8 local\config.json
+$workspaceId = az resource show --resource-group rg-kt-mlops `
+  --name mlw-ktmlops-secure --resource-type Microsoft.MachineLearningServices/workspaces `
+  --query identity.principalId -o tsv
+$scope = "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-kt-mlops"
+az role assignment create --assignee-object-id $workspaceId `
+  --assignee-principal-type ServicePrincipal `
+  --role "Azure AI Enterprise Network Connection Approver" --scope $scope
+uv run --no-sync python -c "from demo.workspace import client,ROOT; m=client(ROOT/'local'/'config.json'); m.workspaces.begin_provision_network(workspace_name=m.workspace_name).result()"
 uv run --no-sync python -m demo.manage all
 ```
 
@@ -97,6 +107,7 @@ Azure RBAC 변경은 전파에 수 분 걸릴 수 있습니다. 실패한 단계
 ```powershell
 uv run --no-sync python -m demo.manage compute
 uv run --no-sync python -m demo.manage assets
+uv run --no-sync python -m demo.manage components
 uv run --no-sync python -m demo.manage train
 uv run --no-sync python -m demo.manage external
 uv run --no-sync python -m demo.manage deploy
@@ -106,6 +117,17 @@ uv run --no-sync python -m demo.manage verify
 첫 실행은 이미지 빌드와 VM 할당 때문에 오래 걸립니다. 세션 전날 미리 실행하세요.
 같은 이름/버전의 자산은 덮어쓰는 용도가 아닙니다. 코드·환경·데이터를 변경했다면
 새 버전으로 등록하세요. `train` 재실행은 새 Job을 제출하므로 추가 비용이 발생합니다.
+
+### 가벼운 학습 시나리오
+
+1,500행의 합성 데이터에서 동일한 1,125행 train / 375행 holdout을 사용합니다.
+CPU Logistic Regression과 깊이 6, 100개 트리의 작은 Random Forest를 비교합니다.
+LLM continual fine-tuning은 실행하지 않습니다. 짧은 학습으로 Data → Prepare →
+Train → MLflow package → Model registration을 설명하고, 별도 HF 모델로 CPU 서빙을 보여줍니다.
+HF MiniLM은 학습한 churn 모델이 아니며 두 모델의 lineage를 혼동하지 않습니다.
+
+발표에서는 준비된 Job과 Endpoint를 먼저 보여주세요. 학습 자체와 달리
+최초 Conda 이미지 빌드, 네트워크 및 VM provisioning은 수 분 이상 걸릴 수 있습니다.
 
 ### 패키지 다운로드 환경
 
@@ -135,7 +157,8 @@ AutoML, Designer의 시각적 편집, Responsible AI, Drift monitor, Batch Endpo
 
 2026-10-26 Retail Prices API에서 Korea Central Linux DS2_v2는
 US$0.165/시간으로 확인했습니다. 24시간 약 US$3.96이며 ACR Basic,
-Storage와 로그 비용은 별도입니다. 전체 계획치는 하루 약 US$5~7이지만
+Storage와 로그 비용은 별도입니다. 현재 구성은 ACR Premium, Private Endpoint,
+Managed Network를 추가 사용하므로 이전 Basic 기준 일일 비용 추정은 적용하지 않습니다.
 사용량·요율·세금·환율에 따라 달라집니다.
 
 * 학습 DS3_v2 클러스터: min=0, max=2, 유휴 120초 후 축소
@@ -143,7 +166,7 @@ Storage와 로그 비용은 별도입니다. 전체 계획치는 하루 약 US$5
 * Log Analytics: 30일 보존, 일일 1GB soft cap (강제 예산 한도 아님)
 * GPU 및 상시 Compute Instance 없음
 
-서빙 비용만 중지하려면 인증된 Azure ML Studio에서 `kt-hf-cpu` endpoint를 삭제하세요.
+서빙 비용만 중지하려면 인증된 Azure ML Studio에서 `kt-hf-cpu-secure` endpoint를 삭제하세요.
 코드·데이터·모델·Job 이력은 Workspace에 남습니다. 필요 시 `deploy` 단계로 재생성합니다.
 전체 삭제는 아래 명령의 대상 RG를 확인하고 명시적으로 실행합니다.
 

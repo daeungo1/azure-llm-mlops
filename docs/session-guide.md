@@ -6,9 +6,9 @@ ms.date: 2026-10-26
 
 ## 권장 진행 순서
 
-현재 클라우드 시연은 조직 Storage 네트워크 정책에 의해 차단되어 있습니다.
-[배포 상태](deployment-status.md)를 먼저 확인하고, 아래 순서는
-차단 해소 및 live 검증 후에 사용하세요.
+`mlw-ktmlops-secure` Workspace에서 시연합니다.
+[배포 상태](deployment-status.md)의 실제 검증 결과를 먼저 확인하세요.
+학습은 소규모 CPU 분류기이며 HF 모델의 continual fine-tuning은 아닙니다.
 
 | 구간 | 내용 | 시연 핵심 |
 |---|---|---|
@@ -34,7 +34,7 @@ MLOps는 여기에 학습 데이터의 버전과 스키마, 실험의 매개변�
 1. Azure 계정과 데모 Workspace의 접근 권한을 확인합니다.
 2. `uv run --no-sync python -m demo.manage verify`를 실행합니다.
 3. Studio에서 Data, Jobs, Models, Components, Environments, Compute, Endpoints를 엽니다.
-4. `kt-hf-cpu`의 `blue` 상태가 Succeeded, 트래픽이 100%인지 확인합니다.
+4. `kt-hf-cpu-secure`의 `blue` 상태가 Succeeded, 트래픽이 100%인지 확인합니다.
 5. 이미지 빌드와 학습을 발표 현장에서 처음 실행하지 않습니다.
 6. 검증 결과와 샘플 요청을 열어 네트워크 문제에 대비합니다.
 
@@ -89,7 +89,7 @@ MLflow 모델은 가중치 파일만이 아니라 `MLmodel`, 환경 정의,
 
 ## HF CPU 실시간 Endpoint
 
-`kt-hf-cpu` -> `blue` -> Test에서 아래 요청을 사용합니다.
+`kt-hf-cpu-secure` -> `blue` -> Test에서 아래 요청을 사용합니다.
 
 ```json
 {
@@ -109,12 +109,14 @@ MLflow 모델은 가중치 파일만이 아니라 `MLmodel`, 환경 정의,
 Consume에서 scoring URI와 인증 방식을 확인합니다.
 Public network는 익명 공개 API를 뜻하지 않습니다. Entra token이 필요합니다.
 `{"texts":[]}`는 4xx 오류, 인증 없는 요청은 401/403을 반환해야 합니다.
+실제 Managed Endpoint에서는 잘못된 입력의 모델 응답 400을 외부 HTTP 424로
+감싸 반환하며 `ms-azureml-model-error-statuscode: 400` 헤더로 확인할 수 있습니다.
 Logs/Monitoring에서 컨테이너 로그와 요청 지표를 확인합니다.
 이 예제는 원문 상담 내용을 로그에 남기지 않습니다.
 
 ## Compute, Components, Environments
 
-Compute의 `cpu-demo`에서 min=0, max=2, DS3_v2를 확인합니다.
+Compute의 `cpu-secure`에서 min=0, max=2, DS3_v2를 확인합니다.
 대기 중 0대인 상태는 정상이며 온라인 Endpoint CPU와 별개입니다.
 Components에서 prepare/train의 입력·출력 계약을,
 Environments에서 학습용과 서빙용의 패키지 버전을 확인합니다.

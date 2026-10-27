@@ -114,6 +114,8 @@ def deploy(ml: MLClient) -> None:
 
 def verify(ml: MLClient) -> dict:
     state = read_state()
+    if len(state.get("pipeline_jobs", [])) != 2:
+        raise AssertionError("Expected two recorded cloud pipeline jobs before verification.")
     for job in state.get("pipeline_jobs", []):
         status = ml.jobs.get(job["name"]).status
         if status != "Completed":

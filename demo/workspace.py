@@ -13,8 +13,8 @@ from azure.identity import AzureCliCredential
 LOGGER = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "local" / "state.json"
-COMPUTE = "cpu-demo"
-ENDPOINT = "kt-hf-cpu"
+COMPUTE = "cpu-secure"
+ENDPOINT = "kt-hf-cpu-secure"
 
 
 def client(config_path: Path) -> MLClient:
@@ -56,6 +56,25 @@ def grant_role(scope: str, principal_id: str, role_id: str, subscription_id: str
         },
         timeout=60,
     )
+    if response.status_code == 409 and response.json().get("error", {}).get("code") == (
+        "RoleAssignmentExists"
+    ):
+        listing = requests.get(
+            f"https://management.azure.com{scope}/providers/Microsoft.Authorization/"
+            "roleAssignments?api-version=2022-04-01",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=60,
+        )
+        listing.raise_for_status()
+        for item in listing.json()["value"]:
+            properties = item["properties"]
+            if (
+                properties["principalId"].lower() == principal_id.lower()
+                and properties["roleDefinitionId"].rsplit("/", 1)[-1].lower() == role_id.lower()
+                and properties["scope"].lower() == scope.lower()
+            ):
+                LOGGER.info("Verified existing scoped role %s for %s.", role_id, principal_id)
+                return
     response.raise_for_status()
     LOGGER.info("Assigned scoped role %s to principal %s.", role_id, principal_id)
 

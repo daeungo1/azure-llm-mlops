@@ -15,6 +15,7 @@ from demo.workspace import COMPUTE, ROOT, save_state
 
 LOGGER = logging.getLogger(__name__)
 TRAIN_ENV = "kt-sklearn-mlflow"
+TRAIN_VERSION = "2"
 BASE_IMAGE = "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest"
 
 
@@ -49,10 +50,15 @@ def register_assets(ml: MLClient) -> None:
                 tags=tags,
             )
         )
+    register_components(ml)
+    save_state(data_versions=["1", "2"])
+
+
+def register_components(ml: MLClient) -> None:
     env = ml.environments.create_or_update(
         Environment(
             name=TRAIN_ENV,
-            version="1",
+            version=TRAIN_VERSION,
             image=BASE_IMAGE,
             conda_file=str(ROOT / "environments" / "training.yml"),
             description="Python 3.11, sklearn 1.6.1 and MLflow 2.22.2 compatibility baseline.",
@@ -60,7 +66,7 @@ def register_assets(ml: MLClient) -> None:
     )
     prep = command(
         name="prepare_telco_data",
-        version="1",
+        version=TRAIN_VERSION,
         display_name="Prepare synthetic telco holdout",
         description="Schema validation and deterministic 75/25 stratified split.",
         code=str(ROOT),
@@ -71,7 +77,7 @@ def register_assets(ml: MLClient) -> None:
     )
     training = command(
         name="train_telco_classifier",
-        version="1",
+        version=TRAIN_VERSION,
         display_name="Train and package an MLflow classifier",
         description="Logs metrics, signature, example input, confusion matrix and MLflow model.",
         code=str(ROOT),
@@ -88,12 +94,12 @@ def register_assets(ml: MLClient) -> None:
     )
     ml.components.create_or_update(prep.component)
     ml.components.create_or_update(training.component)
-    save_state(data_versions=["1", "2"], training_environment=env.id)
+    save_state(training_environment=env.id)
 
 
 def run_pipelines(ml: MLClient) -> None:
-    prep = ml.components.get("prepare_telco_data", version="1")
-    training = ml.components.get("train_telco_classifier", version="1")
+    prep = ml.components.get("prepare_telco_data", version=TRAIN_VERSION)
+    training = ml.components.get("train_telco_classifier", version=TRAIN_VERSION)
 
     @dsl.pipeline(
         display_name="Telco reproducible training",

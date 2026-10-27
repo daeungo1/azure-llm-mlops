@@ -37,8 +37,11 @@ MLflow 3 전용 logged model API나 registry stage에 의존하지 않습니다.
 * 데이터 변화 버전은 만들지만 운영 drift monitor나 재학습 trigger는 미구성
 * 모든 Studio 탭을 채우는 것이 아니라 Agenda의 실제 기능에 해당하는 자산만 생성
 
-Public network는 명시적인 교육 환경 예외입니다.
+Public Studio/Endpoint ingress는 인증된 교육용 경로입니다.
 스토리지 익명 Blob 공개, ACR admin, 공유 Storage key는 비활성화하며
 Key Vault는 RBAC, soft delete와 purge protection을 사용합니다.
-운영 전환 시에는 Private Link, 최소 권한 재검토, CI/CD OIDC, 승인 단계,
+실제 배포는 Storage NSP Enforced 및 AML Managed Network Private Endpoint를 사용합니다.
+`AllowInternetOutbound`는 의존성 설치를 위한 인터넷 egress를 허용하므로
+완전한 인터넷 차단 구성은 아닙니다.
+운영 전환 시에는 최소 권한 재검토, CI/CD OIDC, 승인 단계,
 데이터/모델 품질 기준, 모니터링과 비용 예산을 추가 설계해야 합니다.

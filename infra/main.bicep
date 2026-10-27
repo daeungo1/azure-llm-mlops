@@ -11,6 +11,9 @@ param prefix string = 'ktmlops'
 @description('Entra object ID of the user uploading demo assets.')
 param operatorPrincipalId string
 
+@description('Operator public egress IPv4 address with /32 prefix for enforced NSP access.')
+param operatorAddressPrefix string
+
 var suffix = uniqueString(resourceGroup().id)
 var tags = {
   project: 'azure-llm-mlops'
@@ -30,11 +33,49 @@ resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' = {
     allowSharedKeyAccess: false
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: 'SecuredByPerimeter'
     networkAcls: { defaultAction: 'Allow', bypass: 'AzureServices' }
   }
 }
 
+resource perimeter 'Microsoft.Network/networkSecurityPerimeters@2025-01-01' = {
+  name: 'nsp-${prefix}'
+  location: location
+  tags: tags
+}
+
+resource profile 'Microsoft.Network/networkSecurityPerimeters/profiles@2025-01-01' = {
+  parent: perimeter
+  name: 'mlops'
+}
+
+resource operatorRule 'Microsoft.Network/networkSecurityPerimeters/profiles/accessRules@2025-01-01' = {
+  parent: profile
+  name: 'operator-egress'
+  properties: {
+    direction: 'Inbound'
+    addressPrefixes: [operatorAddressPrefix]
+  }
+}
+
+resource subscriptionRule 'Microsoft.Network/networkSecurityPerimeters/profiles/accessRules@2025-01-01' = {
+  parent: profile
+  name: 'authenticated-demo-subscription'
+  properties: {
+    direction: 'Inbound'
+    subscriptions: [{ id: subscription().id }]
+  }
+}
+
+resource storageAssociation 'Microsoft.Network/networkSecurityPerimeters/resourceAssociations@2025-01-01' = {
+  parent: perimeter
+  name: 'demo-storage'
+  properties: {
+    privateLinkResource: { id: storage.id }
+    profile: { id: profile.id }
+    accessMode: 'Enforced'
+  }
+}
 resource vault 'Microsoft.KeyVault/vaults@2025-05-01' = {
   name: 'kv-${take(prefix, 7)}-${take(suffix, 10)}'
   location: location
@@ -55,7 +96,7 @@ resource registry 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   name: 'cr${prefix}${suffix}'
   location: location
   tags: tags
-  sku: { name: 'Basic' }
+  sku: { name: 'Premium' }
   properties: {
     adminUserEnabled: false
     publicNetworkAccess: 'Enabled'
@@ -88,7 +129,7 @@ resource insights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 resource workspace 'Microsoft.MachineLearningServices/workspaces@2025-06-01' = {
-  name: 'mlw-${prefix}'
+  name: 'mlw-${prefix}-secure'
   location: location
   tags: tags
   kind: 'Default'
@@ -102,13 +143,23 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2025-06-01' = {
     containerRegistry: registry.id
     publicNetworkAccess: 'Enabled'
     systemDatastoresAuthMode: 'Identity'
-    managedNetwork: { isolationMode: 'Disabled' }
+    managedNetwork: { isolationMode: 'AllowInternetOutbound' }
+    imageBuildCompute: 'cpu-secure'
   }
 }
 
-var blobContributor = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-var storageContributor = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
-var keyVaultSecretsOfficer = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
+var blobContributor = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+)
+var storageContributor = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '17d1049b-9a84-46fb-8f53-869881c3d3ab'
+)
+var keyVaultSecretsOfficer = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'b86a8fe4-44ce-4948-aee5-eccb2c155cd7'
+)
 var acrPush = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')
 
 resource workspaceStorageRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
