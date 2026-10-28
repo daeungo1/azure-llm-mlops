@@ -1,6 +1,6 @@
 ---
 title: 실제 Azure 배포 상태
-description: 교육 MLOps 완료 범위, 실제 ACR 이미지, 네트워크 설정 및 Endpoint 호출 검증 결과
+description: 교육 MLOps 완료 범위, 로컬 랩탑 접근, 실제 ACR 이미지와 Endpoint 호출 검증 결과
 ms.date: 2026-10-28
 ---
 
@@ -225,11 +225,76 @@ Enabled이고 실제 배포 상태는 Disabled인 차이가 있었습니다.
 후속 다중 팀 구성에서 템플릿도 Disabled로 정렬했습니다.
 재배포 전에는 코드뿐 아니라 정책 적용 결과와 실제 유효 설정도 확인해야 합니다.
 
+## 로컬 랩탑에서의 접근 확인
+
+2026-10-28 23:26 KST(14:26 UTC)에 현재 랩탑의 Azure CLI 운영자 계정으로
+아래 조회를 확인했습니다. 브라우저 로그인과 리소스의 네트워크·API 접근은 구분합니다.
+공유 브라우저에서는 Azure Portal과 Azure ML Studio의 로그인 화면까지 열렸지만,
+로그인 후 탭별 화면과 데이터 미리보기 렌더링은 확인하지 못했습니다.
+
+### 수정한 접근 설정
+
+랩탑의 공인 egress IPv4가 기존 허용 주소와 달라 Storage 조회가 차단되었습니다.
+공통 RG와 세 팀 RG의 NSP `operator-egress` 규칙에 현재 주소의 `/32`를 추가하고
+기존 허용 주소도 유지했습니다. 네 개 Storage의 `SecuredByPerimeter`,
+NSP `Enforced`, 공유 키·익명 Blob 비활성화 설정은 그대로입니다.
+Workspace와 Endpoint의 인증 방식, 팀 Compute identity, Private Endpoint도 변경하지 않았습니다.
+
+Azure Files 조회의 HTTP 403은 별도의 데이터 권한 부족이 원인이었습니다.
+현재 운영자 사용자에게 각 Workspace의 `workspaceworkingdirectory`와
+`workspacefilestore`가 가리키는 여덟 File share 각각을 범위로
+`Storage File Data Privileged Reader`를 부여했습니다.
+파일·디렉터리 ACL과 무관하게 해당 share를 읽을 수 있는 OAuth FileREST 역할이며,
+쓰기·삭제 권한이나 구독·Storage 계정 전체 범위의 File 역할은 추가하지 않았습니다.
+팀 Compute나 팀 사용자에게 다른 팀 데이터 권한을 부여한 것이 아닙니다.
+[Azure Files OAuth 권한](https://learn.microsoft.com/en-us/azure/storage/files/authorize-oauth-rest)을 기준으로
+공유 키 없이 `x-ms-file-request-intent: backup`을 사용하는 읽기를 검증했습니다.
+
+### 실제 조회 결과
+
+| 대상 | 현재 랩탑에서 확인한 결과 | 해석 |
+|---|---|---|
+| 기존·팀 1~3 Workspace | 모두 Succeeded, public ingress Enabled. Datastores·Jobs·Models·Environments API 조회 성공 | 팀 Models 목록은 비어 있음. 공유 모델은 Registry 범위에서 조회 |
+| 기존 Data·Model | churn Data·MLTable 및 학습 모델 v1/v2 조회 성공 | 자산 메타데이터 접근 확인 |
+| Blob 데이터 | 네 Storage의 컨테이너 목록 조회, 기존 CSV 27,947 bytes·MLTable 114 bytes, 세 팀 marker 각각 HTTP 200 | 실제 파일 읽기까지 확인 |
+| File Datastore | 여덟 File share 모두 OAuth 목록 조회 HTTP 200 | 루트 항목은 모두 0개. 학습 데이터는 Blob에 저장되어 있음 |
+| 브라우저 CORS | 네 Storage 모두 `ml.azure.com`과 `portal.azure.com` origin의 Blob OPTIONS HTTP 200 | 브라우저 미리보기의 CORS 전제 확인. 화면 렌더링 검증과는 다름 |
+| MLflow | 외부 run의 FINISHED 상태와 accuracy·F1·ROC AUC 읽기 성공 | 기존 실험 기록을 실제 tracking API로 조회 |
+| 팀 Job 로그 | Team 1의 완료된 `consume` 자식 Job 로그 다운로드 성공 | 상태 목록뿐 아니라 출력 로그 읽기도 확인 |
+| 공용 ML Registry | `telco-shared:1`, `kt-shared-cpu:1`, `verify_shared_model:3` 조회 성공 | 공유 자산의 메타데이터 접근 확인 |
+| ACR | 네 ACR 모두 인증된 Repository 목록 조회 성공. 기존 ACR의 이미지 태그·digest 확인 | 팀 ACR 세 개의 목록은 비어 있음. 조회 실패가 아님 |
+| Application Insights·Logs | 네 연결 리소스 조회와 네 Logs workspace의 인증된 KQL 쿼리 성공 | 기존 workspace의 최근 1시간 AppTraces는 0건. 최근 요청 로그의 적재를 확인한 것은 아님 |
+| HF Online Endpoint | 인증된 정상 추론 3회 성공, 무인증 401, 빈 입력 424 | 아래 E2E 검증과 동일 |
+| Key Vault | 네 Vault 모두 Succeeded, public access Disabled 유지 | Portal의 리소스 설정 조회와 로컬에서 비밀 값을 읽는 것은 별개. 로컬 secret 조회는 열지 않음 |
+| Registry backing Blob | public access Disabled, 팀 Private Endpoint 세 개 Approved 유지 | 로컬에서 모델 파일을 직접 내려받는 public 경로는 열지 않음 |
+
+File share와 팀 ACR이 빈 것은 접근 오류가 아닙니다.
+또한 운영자 계정이 모든 팀을 조회할 수 있다는 사실은 팀 사용자 간 격리 검증이 아닙니다.
+
+### 리소스 바로가기
+
+| 대상 | 링크 |
+|---|---|
+| 기존 학습·서빙 Workspace | [Azure ML Studio](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops/workspaces/mlw-ktmlops-secure) |
+| 팀 Workspace | [Team 1](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops-team-1/workspaces/mlw-ktmlops-secure-1) · [Team 2](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops-team-2/workspaces/mlw-ktmlops-secure-2) · [Team 3](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops-team-3/workspaces/mlw-ktmlops-secure-3) |
+| 공통 리소스 RG | [Azure Portal](https://portal.azure.com/#@f6d04047-ac77-4fc2-941f-798ed4d54fcf/resource/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops/overview) |
+| 기존 Storage | [Azure Portal](https://portal.azure.com/#@f6d04047-ac77-4fc2-941f-798ed4d54fcf/resource/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops/providers/Microsoft.Storage/storageAccounts/stktmlopsaow7cshia2xmu/overview) |
+| 기존 ACR | [Azure Portal](https://portal.azure.com/#@f6d04047-ac77-4fc2-941f-798ed4d54fcf/resource/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops/providers/Microsoft.ContainerRegistry/registries/crktmlopsaow7cshia2xmu/overview) |
+| 공용 ML Registry | [Azure Portal](https://portal.azure.com/#@f6d04047-ac77-4fc2-941f-798ed4d54fcf/resource/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops/providers/Microsoft.MachineLearningServices/registries/mlr-ktmlops-shared/overview) |
+
+> [!IMPORTANT]
+> 현재 랩탑의 네트워크와 운영자 계정에서 확인한 결과입니다.
+> 행사장 Wi-Fi, 테더링 또는 VPN 전환으로 공인 egress IP가 바뀌면
+> Storage의 NSP 허용 `/32`와 Blob 읽기를 다시 확인해야 합니다.
+> 템플릿 재배포 시에도 `operatorAddressPrefix`에는 현재 허용할 주소를 지정해야 합니다.
+> Portal의 Storage browser에서는 공유 키가 아닌 Microsoft Entra 사용자 인증을 사용합니다.
+
 ## 클라우드 E2E 및 Endpoint 호출 검증
 
 `python -m demo.manage verify`는 Pipeline·자산·Endpoint 상태를 확인한 뒤
 Endpoint를 실제로 호출합니다. 초기 기록은 2026-10-27 02:40 UTC이고,
-현재 `local/verification.json`에는 같은 날 09:49 UTC에 다시 실행한 결과가 남아 있습니다.
+현재 `local/verification.json`에는 2026-10-28 14:15 UTC에
+랩탑에서 다시 실행한 결과가 남아 있습니다.
 
 | 검증 항목 | 실제 결과 |
 |---|---|
@@ -244,12 +309,13 @@ Endpoint를 실제로 호출합니다. 초기 기록은 2026-10-27 02:40 UTC이�
 | 실제 추론 | billing / network / cancellation, HTTP 200 |
 | 임베딩 차원 | 384 |
 | 상위 cosine similarity | 0.792 / 0.736 / 0.740 |
-| 3회 왕복 지연(09:49 UTC) | 0.893 / 0.685 / 0.748초 |
+| 3회 왕복 지연(2026-10-28 14:15 UTC) | 1.622 / 0.973 / 0.779초 |
 | 무인증 요청 | HTTP 401 |
 | 빈 texts | 외부 HTTP 424, model-error-statuscode 400 |
 
-이전 실행의 3회 왕복 지연은 02:40 UTC에 1.795 / 1.618 / 0.650초,
-09:25 UTC에 2.369 / 2.317 / 1.486초였습니다.
+2026-10-27 실행의 3회 왕복 지연은 02:40 UTC에 1.795 / 1.618 / 0.650초,
+09:25 UTC에 2.369 / 2.317 / 1.486초,
+09:49 UTC에 0.893 / 0.685 / 0.748초였습니다.
 직렬 호출 3회의 클라이언트 왕복 시간이며 편차가 있으므로 성능 SLO로 사용하지 않습니다.
 
 학습 run의 MLflow start/end 기준 소요 시간은 Logistic 약 34.4초,

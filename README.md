@@ -287,6 +287,12 @@ Storage Networking·NSP·ACR·Application Insights·Log Analytics를 연결해 �
 팀 RG·Workspace와 실행 identity 범위의 격리는 별도 다중 팀 데모에서 다룹니다.
 실제 10개 팀의 사용자·Entra 그룹 권한, GPU·Slurm/Lustre, 운영 HA는 검증 범위가 아닙니다.
 
+2026-10-28 랩탑 점검에서 변경된 공인 IP의 `/32`를 네 개 NSP에 추가하고,
+운영자에게 데모 File share 범위의 읽기 전용 권한을 부여했습니다.
+Blob·File 조회, MLflow·Registry 자산 조회, ACR·Logs와 인증된 추론을 확인했습니다.
+로그인 후 Portal·Studio 화면 확인은 별도이며,
+[랩탑 접근 결과와 리소스 바로가기](docs/deployment-status.md#로컬-랩탑에서의-접근-확인)에 범위를 구분했습니다.
+
 ## 11. CI와 실행 Workflow: 검증 자동화와 모델 운영 자동화 구분하기
 
 <a id="실행-workflow"></a>
@@ -388,7 +394,7 @@ uv run --no-sync python -m demo.manage verify
 새 팀 Workspace는 처음 생성할 때 Managed Network mode가 Disabled여야 합니다.
 기존 AllowInternetOutbound Workspace를 템플릿 재배포만으로 Disabled로 바꿀 수 없습니다.
 아래 명령은 Workspace를 자동 삭제하지 않으며, 설정이 다르면 명시적으로 실패합니다.
-기존 검증 `mlw-ktmlops-secure`의 네트워크는 그대로 유지합니다.
+기존 검증 `mlw-ktmlops-secure`의 Managed Network와 Endpoint 설정은 그대로 유지합니다.
 
 ```powershell
 $subscription = az account show --query id -o tsv
