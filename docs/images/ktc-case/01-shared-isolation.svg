@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" role="img" aria-labelledby="title desc" width="1000" height="620" style="max-width:100%;height:auto"><title id="title">공유 연산 풀과 과제별 격리 리소스 구성</title><desc id="desc">원문 설계안의 그림 1. 연산(GPU·Lustre·Scheduler)은 공유하고, 과제 Blob과 Registry에 닿는 Identity는 과제별로 분리합니다. 실제 데모 배포 검증 결과가 아닙니다. GPU 규모와 내부 서빙 이름은 일반화했습니다.</desc><style><![CDATA[:root{
+  --bg:#f7f7f5; --paper:#ffffff; --ink:#1b1d21; --quiet:#5b616b; --line:#d9dbe0; --soft:#eef0f3;
+  --accent:#2563eb; --accent-soft:#e8efff; --accent2:#0f766e; --accent2-soft:#e3f4f1; --warn:#b45309; --warn-soft:#fdf3e4;
+  --box:#ffffff; --box-stroke:#8a909a; --conn:#7a808a;
+}
+svg{background:var(--paper)}
+
+svg text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif}
+.s-box{fill:var(--box);stroke:var(--box-stroke);stroke-width:1.25}
+.s-acc{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+.s-acc2{fill:var(--accent2-soft);stroke:var(--accent2);stroke-width:2}
+.s-grp{fill:none;stroke:var(--box-stroke);stroke-width:1.1;stroke-dasharray:6 5}
+.s-grp2{fill:var(--soft);stroke:none}
+.s-ln{fill:none;stroke:var(--conn);stroke-width:1.4}
+.s-ln2{fill:none;stroke:var(--accent2);stroke-width:1.6}
+.s-t{fill:var(--ink);font-size:14px;font-weight:700}
+.s-b{fill:var(--ink);font-size:12.5px}
+.s-q{fill:var(--quiet);font-size:12px}
+.s-g{fill:var(--quiet);font-size:12.5px;font-weight:700;letter-spacing:.02em}
+.s-arw{fill:var(--conn)}
+.s-arw2{fill:var(--accent2)}
+.s-card{fill:var(--paper);stroke:var(--box-stroke);stroke-width:1.2;stroke-dasharray:5 4}
+.s-chip{fill:var(--box);stroke:var(--line);stroke-width:1}
+.s-x{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.4}
+.s-xt{fill:var(--warn);font-size:12px;font-weight:700}
+.s-h{fill:var(--ink);font-size:15px;font-weight:800}
+.s-s{fill:var(--quiet);font-size:11px}
+.s-c{fill:var(--ink);font-size:11.5px}
+]]></style><rect width="100%" height="100%" fill="var(--paper)" />
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="s-arw" /></marker>
+    <marker id="a1b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="s-arw2" /></marker>
+  </defs>
+  <!-- common RG -->
+  <rect x="20" y="20" width="960" height="330" rx="12" class="s-grp" />
+  <text x="36" y="42" class="s-g">공통 RG · 공통 비용</text>
+  <!-- cluster -->
+  <rect x="40" y="55" width="600" height="280" rx="10" class="s-grp2" />
+  <text x="56" y="78" class="s-g">CycleCloud Slurm 클러스터</text>
+  <!-- GPU -->
+  <rect x="60" y="92" width="560" height="112" rx="8" class="s-acc" />
+  <text x="340" y="122" text-anchor="middle" class="s-t">GPU Partition · ND H100 v5 + InfiniBand</text>
+  <text x="340" y="146" text-anchor="middle" class="s-b">10개 과제 공유 GPU 풀 (QoS 상한 · Fairshare)</text>
+  <text x="340" y="168" text-anchor="middle" class="s-q">노드 Managed Identity에 과제 권한 없음</text>
+  <text x="340" y="188" text-anchor="middle" class="s-q">과제 SP 인증서는 과제 그룹만 읽는 파일로 접근</text>
+  <!-- login / slurm / dm -->
+  <rect x="60" y="225" width="170" height="92" rx="8" class="s-box" />
+  <text x="145" y="254" text-anchor="middle" class="s-t">login-projNN ×10</text>
+  <text x="145" y="278" text-anchor="middle" class="s-b">과제 그룹만 SSH</text>
+  <text x="145" y="298" text-anchor="middle" class="s-q">작업 제출 · 조회</text>
+  <rect x="250" y="225" width="170" height="92" rx="8" class="s-box" />
+  <text x="335" y="254" text-anchor="middle" class="s-t">Slurm + slurmdbd</text>
+  <text x="335" y="278" text-anchor="middle" class="s-b">Account projNN · QoS</text>
+  <text x="335" y="298" text-anchor="middle" class="s-q">GPU-hour 집계</text>
+  <rect x="440" y="225" width="180" height="92" rx="8" class="s-acc2" />
+  <text x="530" y="254" text-anchor="middle" class="s-t">dm-projNN ×10</text>
+  <text x="530" y="278" text-anchor="middle" class="s-b">과제 UAMI 보유</text>
+  <text x="530" y="298" text-anchor="middle" class="s-q">Blob ↔ Lustre 이동</text>
+  <!-- Lustre -->
+  <rect x="670" y="55" width="290" height="195" rx="10" class="s-box" />
+  <text x="815" y="84" text-anchor="middle" class="s-t">Azure Managed Lustre</text>
+  <text x="690" y="114" class="s-b">/projects/proj01 … proj10</text>
+  <text x="690" y="136" class="s-q">그룹 g-projNN · 2770 · Project 쿼터</text>
+  <text x="690" y="168" class="s-b">/projects/projNN/.cred</text>
+  <text x="690" y="190" class="s-q">과제 SP 인증서 · 0640 root:g-projNN</text>
+  <text x="690" y="222" class="s-b">/shared</text>
+  <text x="750" y="222" class="s-q">읽기 전용 베이스 모델(HSM)</text>
+  <!-- monitoring -->
+  <rect x="670" y="268" width="290" height="67" rx="10" class="s-box" />
+  <text x="815" y="295" text-anchor="middle" class="s-t">Managed Grafana · Prometheus</text>
+  <text x="815" y="318" text-anchor="middle" class="s-q">Slurm · GPU · 과제별 점유율</text>
+  <!-- project RG -->
+  <rect x="20" y="380" width="960" height="220" rx="12" class="s-grp" />
+  <text x="36" y="402" class="s-g">과제 RG ×10 (rg-rnd-projNN) · 개별 비용</text>
+  <rect x="40" y="430" width="200" height="140" rx="8" class="s-box" />
+  <text x="140" y="460" text-anchor="middle" class="s-t">Entra 그룹 g-projNN</text>
+  <text x="140" y="486" text-anchor="middle" class="s-b">과제 구성원</text>
+  <text x="140" y="508" text-anchor="middle" class="s-q">Login Node · Registry</text>
+  <text x="140" y="526" text-anchor="middle" class="s-q">접근을 같은 그룹으로</text>
+  <rect x="260" y="430" width="200" height="140" rx="8" class="s-box" />
+  <text x="360" y="460" text-anchor="middle" class="s-t">Key Vault · Identity</text>
+  <text x="360" y="486" text-anchor="middle" class="s-b">과제 UAMI · 과제 SP</text>
+  <text x="360" y="508" text-anchor="middle" class="s-q">자기 과제 리소스에만</text>
+  <text x="360" y="526" text-anchor="middle" class="s-q">RBAC 부여</text>
+  <rect x="480" y="430" width="220" height="140" rx="8" class="s-box" />
+  <text x="590" y="460" text-anchor="middle" class="s-t">Storage Account</text>
+  <text x="590" y="486" text-anchor="middle" class="s-b">datasets · checkpoints</text>
+  <text x="590" y="506" text-anchor="middle" class="s-b">models (원본 보관)</text>
+  <text x="590" y="530" text-anchor="middle" class="s-q">Private Endpoint · 과제 UAMI만</text>
+  <rect x="720" y="430" width="240" height="140" rx="8" class="s-acc" />
+  <text x="840" y="460" text-anchor="middle" class="s-t">MLOps Registry</text>
+  <text x="840" y="488" text-anchor="middle" class="s-b">Plan A: AML Workspace</text>
+  <text x="840" y="510" text-anchor="middle" class="s-b">Plan B: MLflow(과제 DB)</text>
+  <text x="840" y="534" text-anchor="middle" class="s-q">메타데이터 · 버전 · Lineage</text>
+  <!-- connectors -->
+  <path d="M620 148H670" class="s-ln" marker-start="url(#a1)" marker-end="url(#a1)" />
+  <text x="645" y="139" text-anchor="middle" class="s-q">I/O</text>
+  <path d="M620 240H670" class="s-ln2" marker-start="url(#a1b)" marker-end="url(#a1b)" />
+  <path d="M510 317V430" class="s-ln2" marker-start="url(#a1b)" marker-end="url(#a1b)" />
+  <text x="502" y="364" text-anchor="end" class="s-q">stage-in/out</text>
+  <path d="M600 317V412H840V430" class="s-ln" marker-end="url(#a1)" />
+  <text x="720" y="405" text-anchor="middle" class="s-q">Metric · 버전 등록 (과제 SP)</text>
+</svg>

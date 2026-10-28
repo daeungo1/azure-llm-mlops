@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 724" role="img" aria-labelledby="title desc" width="1000" height="724" style="max-width:100%;height:auto"><title id="title">Plan C: 10개 과제 격리 구성</title><desc id="desc">원문 설계안의 그림 7. Metastore만 리전 공통이고, Workspace·Catalog·Access Connector·Storage는 과제마다 둡니다. 실제 데모 배포 검증 결과가 아닙니다. GPU 규모와 내부 서빙 이름은 일반화했습니다.</desc><style><![CDATA[:root{
+  --bg:#f7f7f5; --paper:#ffffff; --ink:#1b1d21; --quiet:#5b616b; --line:#d9dbe0; --soft:#eef0f3;
+  --accent:#2563eb; --accent-soft:#e8efff; --accent2:#0f766e; --accent2-soft:#e3f4f1; --warn:#b45309; --warn-soft:#fdf3e4;
+  --box:#ffffff; --box-stroke:#8a909a; --conn:#7a808a;
+}
+svg{background:var(--paper)}
+
+svg text{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif}
+.s-box{fill:var(--box);stroke:var(--box-stroke);stroke-width:1.25}
+.s-acc{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+.s-acc2{fill:var(--accent2-soft);stroke:var(--accent2);stroke-width:2}
+.s-grp{fill:none;stroke:var(--box-stroke);stroke-width:1.1;stroke-dasharray:6 5}
+.s-grp2{fill:var(--soft);stroke:none}
+.s-ln{fill:none;stroke:var(--conn);stroke-width:1.4}
+.s-ln2{fill:none;stroke:var(--accent2);stroke-width:1.6}
+.s-t{fill:var(--ink);font-size:14px;font-weight:700}
+.s-b{fill:var(--ink);font-size:12.5px}
+.s-q{fill:var(--quiet);font-size:12px}
+.s-g{fill:var(--quiet);font-size:12.5px;font-weight:700;letter-spacing:.02em}
+.s-arw{fill:var(--conn)}
+.s-arw2{fill:var(--accent2)}
+.s-card{fill:var(--paper);stroke:var(--box-stroke);stroke-width:1.2;stroke-dasharray:5 4}
+.s-chip{fill:var(--box);stroke:var(--line);stroke-width:1}
+.s-x{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.4}
+.s-xt{fill:var(--warn);font-size:12px;font-weight:700}
+.s-h{fill:var(--ink);font-size:15px;font-weight:800}
+.s-s{fill:var(--quiet);font-size:11px}
+.s-c{fill:var(--ink);font-size:11.5px}
+]]></style><rect width="100%" height="100%" fill="var(--paper)" />
+<defs><marker id="ic" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="s-arw" /></marker></defs>
+<rect x="20" y="20" width="960" height="112" rx="12" class="s-grp2" />
+<text x="36" y="44" class="s-g">공유 계층 · 공통 비용 (사용량으로 배부)</text>
+<rect x="40" y="56" width="220" height="62" rx="8" class="s-box" />
+<text x="150" y="80" text-anchor="middle" class="s-t">공유 GPU 풀</text>
+<text x="150" y="102" text-anchor="middle" class="s-q">ND H100 v5 · QoS 상한</text>
+<rect x="276" y="56" width="220" height="62" rx="8" class="s-box" />
+<text x="386" y="80" text-anchor="middle" class="s-t">Slurm Scheduler</text>
+<text x="386" y="102" text-anchor="middle" class="s-q">Account proj01–proj10 · Fairshare</text>
+<rect x="512" y="56" width="220" height="62" rx="8" class="s-box" />
+<text x="622" y="80" text-anchor="middle" class="s-t">Azure Managed Lustre</text>
+<text x="622" y="102" text-anchor="middle" class="s-q">/projects/projNN 그룹·쿼터 분리</text>
+<rect x="748" y="56" width="220" height="62" rx="8" class="s-acc" />
+<text x="858" y="80" text-anchor="middle" class="s-t">UC Metastore (리전 1개)</text>
+<text x="858" y="102" text-anchor="middle" class="s-q">Databricks 계정 · SCIM 동기화</text>
+<path d="M500 132V176" class="s-ln" marker-end="url(#ic)" />
+<text x="510" y="158" class="s-q">Slurm job은 제출자 UID로 실행 → 자기 과제 자원에만 도달</text>
+<g><rect x="20" y="176" width="179" height="236" rx="10" class="s-card" />
+<text x="32" y="202" class="s-h">proj01</text>
+<text x="187" y="202" text-anchor="end" class="s-s">rg-rnd-proj01</text>
+<rect x="28" y="218" width="163" height="29" rx="6" class="s-chip" />
+<text x="109.5" y="237" text-anchor="middle" class="s-c">Entra 그룹 g-proj01</text>
+<rect x="28" y="255" width="163" height="29" rx="6" class="s-chip" />
+<text x="109.5" y="274" text-anchor="middle" class="s-c">login-proj01 · dm-proj01</text>
+<rect x="28" y="292" width="163" height="29" rx="6" class="s-chip" />
+<text x="109.5" y="311" text-anchor="middle" class="s-c">/projects/proj01 · 쿼터</text>
+<rect x="28" y="329" width="163" height="29" rx="6" class="s-acc2" />
+<text x="109.5" y="348" text-anchor="middle" class="s-c">Storage stproj01</text>
+<rect x="28" y="366" width="163" height="29" rx="6" class="s-acc" />
+<text x="109.5" y="385" text-anchor="middle" class="s-c">ws-proj01 + catalog proj01</text>
+</g>
+<g><rect x="215" y="176" width="179" height="236" rx="10" class="s-card" />
+<text x="227" y="202" class="s-h">proj02</text>
+<text x="382" y="202" text-anchor="end" class="s-s">rg-rnd-proj02</text>
+<rect x="223" y="218" width="163" height="29" rx="6" class="s-chip" />
+<text x="304.5" y="237" text-anchor="middle" class="s-c">Entra 그룹 g-proj02</text>
+<rect x="223" y="255" width="163" height="29" rx="6" class="s-chip" />
+<text x="304.5" y="274" text-anchor="middle" class="s-c">login-proj02 · dm-proj02</text>
+<rect x="223" y="292" width="163" height="29" rx="6" class="s-chip" />
+<text x="304.5" y="311" text-anchor="middle" class="s-c">/projects/proj02 · 쿼터</text>
+<rect x="223" y="329" width="163" height="29" rx="6" class="s-acc2" />
+<text x="304.5" y="348" text-anchor="middle" class="s-c">Storage stproj02</text>
+<rect x="223" y="366" width="163" height="29" rx="6" class="s-acc" />
+<text x="304.5" y="385" text-anchor="middle" class="s-c">ws-proj02 + catalog proj02</text>
+</g>
+<g><rect x="410" y="176" width="179" height="236" rx="10" class="s-card" />
+<text x="422" y="202" class="s-h">proj03</text>
+<text x="577" y="202" text-anchor="end" class="s-s">rg-rnd-proj03</text>
+<rect x="418" y="218" width="163" height="29" rx="6" class="s-chip" />
+<text x="499.5" y="237" text-anchor="middle" class="s-c">Entra 그룹 g-proj03</text>
+<rect x="418" y="255" width="163" height="29" rx="6" class="s-chip" />
+<text x="499.5" y="274" text-anchor="middle" class="s-c">login-proj03 · dm-proj03</text>
+<rect x="418" y="292" width="163" height="29" rx="6" class="s-chip" />
+<text x="499.5" y="311" text-anchor="middle" class="s-c">/projects/proj03 · 쿼터</text>
+<rect x="418" y="329" width="163" height="29" rx="6" class="s-acc2" />
+<text x="499.5" y="348" text-anchor="middle" class="s-c">Storage stproj03</text>
+<rect x="418" y="366" width="163" height="29" rx="6" class="s-acc" />
+<text x="499.5" y="385" text-anchor="middle" class="s-c">ws-proj03 + catalog proj03</text>
+</g>
+<g><rect x="605" y="176" width="179" height="236" rx="10" class="s-card" />
+<text x="617" y="202" class="s-h">proj04</text>
+<text x="772" y="202" text-anchor="end" class="s-s">rg-rnd-proj04</text>
+<rect x="613" y="218" width="163" height="29" rx="6" class="s-chip" />
+<text x="694.5" y="237" text-anchor="middle" class="s-c">Entra 그룹 g-proj04</text>
+<rect x="613" y="255" width="163" height="29" rx="6" class="s-chip" />
+<text x="694.5" y="274" text-anchor="middle" class="s-c">login-proj04 · dm-proj04</text>
+<rect x="613" y="292" width="163" height="29" rx="6" class="s-chip" />
+<text x="694.5" y="311" text-anchor="middle" class="s-c">/projects/proj04 · 쿼터</text>
+<rect x="613" y="329" width="163" height="29" rx="6" class="s-acc2" />
+<text x="694.5" y="348" text-anchor="middle" class="s-c">Storage stproj04</text>
+<rect x="613" y="366" width="163" height="29" rx="6" class="s-acc" />
+<text x="694.5" y="385" text-anchor="middle" class="s-c">ws-proj04 + catalog proj04</text>
+</g>
+<g><rect x="800" y="176" width="179" height="236" rx="10" class="s-card" />
+<text x="812" y="202" class="s-h">proj05</text>
+<text x="967" y="202" text-anchor="end" class="s-s">rg-rnd-proj05</text>
+<rect x="808" y="218" width="163" height="29" rx="6" class="s-chip" />
+<text x="889.5" y="237" text-anchor="middle" class="s-c">Entra 그룹 g-proj05</text>
+<rect x="808" y="255" width="163" height="29" rx="6" class="s-chip" />
+<text x="889.5" y="274" text-anchor="middle" class="s-c">login-proj05 · dm-proj05</text>
+<rect x="808" y="292" width="163" height="29" rx="6" class="s-chip" />
+<text x="889.5" y="311" text-anchor="middle" class="s-c">/projects/proj05 · 쿼터</text>
+<rect x="808" y="329" width="163" height="29" rx="6" class="s-acc2" />
+<text x="889.5" y="348" text-anchor="middle" class="s-c">Storage stproj05</text>
+<rect x="808" y="366" width="163" height="29" rx="6" class="s-acc" />
+<text x="889.5" y="385" text-anchor="middle" class="s-c">ws-proj05 + catalog proj05</text>
+</g>
+<circle cx="207.0" cy="343" r="9" class="s-x" /><text x="207.0" y="347.5" text-anchor="middle" class="s-xt">✕</text>
+<circle cx="402.0" cy="343" r="9" class="s-x" /><text x="402.0" y="347.5" text-anchor="middle" class="s-xt">✕</text>
+<circle cx="597.0" cy="343" r="9" class="s-x" /><text x="597.0" y="347.5" text-anchor="middle" class="s-xt">✕</text>
+<circle cx="792.0" cy="343" r="9" class="s-x" /><text x="792.0" y="347.5" text-anchor="middle" class="s-xt">✕</text>
+<g><rect x="20" y="436" width="179" height="236" rx="10" class="s-card" />
+<text x="32" y="462" class="s-h">proj06</text>
+<text x="187" y="462" text-anchor="end" class="s-s">rg-rnd-proj06</text>
+<rect x="28" y="478" width="163" height="29" rx="6" class="s-chip" />
+<text x="109.5" y="497" text-anchor="middle" class="s-c">Entra 그룹 g-proj06</text>
+<rect x="28" y="515" width="163" height="29" rx="6" class="s-chip" />
+<text x="109.5" y="534" text-anchor="middle" class="s-c">login-proj06 · dm-proj06</text>
+<rect x="28" y="552" width="163" height="29" rx="6" class="s-chip" />
+<text x="109.5" y="571" text-anchor="middle" class="s-c">/projects/proj06 · 쿼터</text>
+<rect x="28" y="589" width="163" height="29" rx="6" class="s-acc2" />
+<text x="109.5" y="608" text-anchor="middle" class="s-c">Storage stproj06</text>
+<rect x="28" y="626" width="163" height="29" rx="6" class="s-acc" />
+<text x="109.5" y="645" text-anchor="middle" class="s-c">ws-proj06 + catalog proj06</text>
+</g>
+<g><rect x="215" y="436" width="179" height="236" rx="10" class="s-card" />
+<text x="227" y="462" class="s-h">proj07</text>
+<text x="382" y="462" text-anchor="end" class="s-s">rg-rnd-proj07</text>
+<rect x="223" y="478" width="163" height="29" rx="6" class="s-chip" />
+<text x="304.5" y="497" text-anchor="middle" class="s-c">Entra 그룹 g-proj07</text>
+<rect x="223" y="515" width="163" height="29" rx="6" class="s-chip" />
+<text x="304.5" y="534" text-anchor="middle" class="s-c">login-proj07 · dm-proj07</text>
+<rect x="223" y="552" width="163" height="29" rx="6" class="s-chip" />
+<text x="304.5" y="571" text-anchor="middle" class="s-c">/projects/proj07 · 쿼터</text>
+<rect x="223" y="589" width="163" height="29" rx="6" class="s-acc2" />
+<text x="304.5" y="608" text-anchor="middle" class="s-c">Storage stproj07</text>
+<rect x="223" y="626" width="163" height="29" rx="6" class="s-acc" />
+<text x="304.5" y="645" text-anchor="middle" class="s-c">ws-proj07 + catalog proj07</text>
+</g>
+<g><rect x="410" y="436" width="179" height="236" rx="10" class="s-card" />
+<text x="422" y="462" class="s-h">proj08</text>
+<text x="577" y="462" text-anchor="end" class="s-s">rg-rnd-proj08</text>
+<rect x="418" y="478" width="163" height="29" rx="6" class="s-chip" />
+<text x="499.5" y="497" text-anchor="middle" class="s-c">Entra 그룹 g-proj08</text>
+<rect x="418" y="515" width="163" height="29" rx="6" class="s-chip" />
+<text x="499.5" y="534" text-anchor="middle" class="s-c">login-proj08 · dm-proj08</text>
+<rect x="418" y="552" width="163" height="29" rx="6" class="s-chip" />
+<text x="499.5" y="571" text-anchor="middle" class="s-c">/projects/proj08 · 쿼터</text>
+<rect x="418" y="589" width="163" height="29" rx="6" class="s-acc2" />
+<text x="499.5" y="608" text-anchor="middle" class="s-c">Storage stproj08</text>
+<rect x="418" y="626" width="163" height="29" rx="6" class="s-acc" />
+<text x="499.5" y="645" text-anchor="middle" class="s-c">ws-proj08 + catalog proj08</text>
+</g>
+<g><rect x="605" y="436" width="179" height="236" rx="10" class="s-card" />
+<text x="617" y="462" class="s-h">proj09</text>
+<text x="772" y="462" text-anchor="end" class="s-s">rg-rnd-proj09</text>
+<rect x="613" y="478" width="163" height="29" rx="6" class="s-chip" />
+<text x="694.5" y="497" text-anchor="middle" class="s-c">Entra 그룹 g-proj09</text>
+<rect x="613" y="515" width="163" height="29" rx="6" class="s-chip" />
+<text x="694.5" y="534" text-anchor="middle" class="s-c">login-proj09 · dm-proj09</text>
+<rect x="613" y="552" width="163" height="29" rx="6" class="s-chip" />
+<text x="694.5" y="571" text-anchor="middle" class="s-c">/projects/proj09 · 쿼터</text>
+<rect x="613" y="589" width="163" height="29" rx="6" class="s-acc2" />
+<text x="694.5" y="608" text-anchor="middle" class="s-c">Storage stproj09</text>
+<rect x="613" y="626" width="163" height="29" rx="6" class="s-acc" />
+<text x="694.5" y="645" text-anchor="middle" class="s-c">ws-proj09 + catalog proj09</text>
+</g>
+<g><rect x="800" y="436" width="179" height="236" rx="10" class="s-card" />
+<text x="812" y="462" class="s-h">proj10</text>
+<text x="967" y="462" text-anchor="end" class="s-s">rg-rnd-proj10</text>
+<rect x="808" y="478" width="163" height="29" rx="6" class="s-chip" />
+<text x="889.5" y="497" text-anchor="middle" class="s-c">Entra 그룹 g-proj10</text>
+<rect x="808" y="515" width="163" height="29" rx="6" class="s-chip" />
+<text x="889.5" y="534" text-anchor="middle" class="s-c">login-proj10 · dm-proj10</text>
+<rect x="808" y="552" width="163" height="29" rx="6" class="s-chip" />
+<text x="889.5" y="571" text-anchor="middle" class="s-c">/projects/proj10 · 쿼터</text>
+<rect x="808" y="589" width="163" height="29" rx="6" class="s-acc2" />
+<text x="889.5" y="608" text-anchor="middle" class="s-c">Storage stproj10</text>
+<rect x="808" y="626" width="163" height="29" rx="6" class="s-acc" />
+<text x="889.5" y="645" text-anchor="middle" class="s-c">ws-proj10 + catalog proj10</text>
+</g>
+<circle cx="207.0" cy="603" r="9" class="s-x" /><text x="207.0" y="607.5" text-anchor="middle" class="s-xt">✕</text>
+<circle cx="402.0" cy="603" r="9" class="s-x" /><text x="402.0" y="607.5" text-anchor="middle" class="s-xt">✕</text>
+<circle cx="597.0" cy="603" r="9" class="s-x" /><text x="597.0" y="607.5" text-anchor="middle" class="s-xt">✕</text>
+<circle cx="792.0" cy="603" r="9" class="s-x" /><text x="792.0" y="607.5" text-anchor="middle" class="s-xt">✕</text>
+<text x="20" y="706" class="s-q">경계: catalog projNN을 ws-projNN에만 Binding(ISOLATED) · External Location·Credential도 Binding · UC 권한은 g-projNN에만</text>
+</svg>

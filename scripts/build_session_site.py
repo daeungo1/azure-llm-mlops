@@ -51,10 +51,20 @@ CHAPTERS = (
         "11-workflow", "demo-workflow.svg", "코드 검증 CI와 운영자 실행·모델 운영 자동화의 차이."
     ),
 )
-SVG_FILES = tuple(chapter.diagram for chapter in CHAPTERS) + ("multi-team-architecture.svg",)
+SVG_FILES = tuple(chapter.diagram for chapter in CHAPTERS) + (
+    "multi-team-architecture.svg",
+    "ktc-case/01-shared-isolation.svg",
+    "ktc-case/02-plan-a-architecture.svg",
+    "ktc-case/03-plan-a-project-isolation.svg",
+    "ktc-case/04-plan-b-architecture.svg",
+    "ktc-case/05-plan-b-project-isolation.svg",
+    "ktc-case/06-plan-c-architecture.svg",
+    "ktc-case/07-plan-c-project-isolation.svg",
+)
 PUBLIC_PAGES = {
     "docs/session-home.md": "index.md",
     "docs/deployment-status.md": "deployment-status.md",
+    "docs/appendix-discussion.md": "appendix-discussion.md",
 }
 PUBLIC_FILES = {
     **PUBLIC_PAGES,

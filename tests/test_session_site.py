@@ -5,6 +5,15 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+CASE_FIGURES = (
+    "01-shared-isolation.svg",
+    "02-plan-a-architecture.svg",
+    "03-plan-a-project-isolation.svg",
+    "04-plan-b-architecture.svg",
+    "05-plan-b-project-isolation.svg",
+    "06-plan-c-architecture.svg",
+    "07-plan-c-project-isolation.svg",
+)
 
 
 def test_generator_is_available():
@@ -18,13 +27,7 @@ def site_builder():
 
 @pytest.fixture
 def source_tree(tmp_path, site_builder):
-    sources = [
-        "README.md",
-        "docs/session-home.md",
-        "docs/deployment-status.md",
-        "docs/stylesheets/session.css",
-        *[f"docs/images/{name}" for name in site_builder.SVG_FILES],
-    ]
+    sources = ["README.md", *site_builder.PUBLIC_FILES]
     for name in sources:
         target = tmp_path / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -72,16 +75,20 @@ def test_unapproved_local_link_is_rejected(site_builder, target):
 
 def test_source_generation_is_repeatable_and_allowlisted(site_builder, source_tree):
     private = source_tree / "docs" / "images" / "ktc-case" / "source.svg"
-    private.parent.mkdir()
+    private.parent.mkdir(exist_ok=True)
     private.write_text("PRIVATE", encoding="utf-8")
     (source_tree / "kt-mlops.pptx").write_bytes(b"PRIVATE")
     site_builder.build_source(source_tree)
     site_builder.build_source(source_tree)
     output = source_tree / ".site-content"
     assert len(list(output.glob("[0-9][0-9]-*.md"))) == 11
-    assert {file.name for file in (output / "images").iterdir()} == set(site_builder.SVG_FILES)
+    assert {
+        file.relative_to(output / "images").as_posix()
+        for file in (output / "images").rglob("*.svg")
+    } == set(site_builder.SVG_FILES)
     assert not list(output.rglob("*.pptx"))
-    assert not list(output.rglob("ktc-case"))
+    assert not list(output.rglob("source.svg"))
+    assert not (output / "ktc-mlops.md").exists()
     assert "PRIVATE" not in "\n".join(
         file.read_text(encoding="utf-8") for file in output.rglob("*") if file.is_file()
     )
@@ -91,6 +98,22 @@ def test_source_generation_is_repeatable_and_allowlisted(site_builder, source_tr
         assert removed not in content
     first = (output / "01-overview.md").read_text(encoding="utf-8")
     assert "images/mlops-overview.svg" in first
+
+
+def test_discussion_appendix_includes_only_approved_case_figures(site_builder, source_tree):
+    output = site_builder.build_source(source_tree)
+    appendix = output / "appendix-discussion.md"
+    assert appendix.is_file(), "Discussion appendix must be published"
+    content = appendix.read_text(encoding="utf-8")
+    for name in CASE_FIGURES:
+        target = f"images/ktc-case/{name}"
+        assert target in content
+        assert (output / target).read_bytes() == (
+            ROOT / "docs" / "images" / "ktc-case" / name
+        ).read_bytes()
+    assert "(appendix-discussion.md)" in (output / "index.md").read_text(encoding="utf-8")
+    assert "appendix-discussion.md" in (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
+    assert "(docs/appendix-discussion.md)" in (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def test_readme_starts_with_site_link():

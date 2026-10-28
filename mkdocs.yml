@@ -67,6 +67,8 @@ nav:
       - 11. CI · 실행 Workflow: 11-workflow.md
   - 검증:
       - 실제 배포 · 검증 기록: deployment-status.md
+  - Appendix · Discussion:
+      - 배경 시나리오 · Plan A/B/C: appendix-discussion.md
 validation:
   nav:
     omitted_files: warn

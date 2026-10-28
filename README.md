@@ -507,5 +507,6 @@ Key Vault purge protection 때문에 삭제 후에도 보존 기간 동안 이�
 
 ## 13. 상세 문서
 
+* [Appendix · 배경 시나리오와 Plan A/B/C 비교](docs/appendix-discussion.md)
 * [현재 기능에 대한 공식 근거](docs/research.md)
 * [실행 검증 결과와 전체 MLOps 완료 범위](docs/deployment-status.md)
