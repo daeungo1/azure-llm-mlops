@@ -149,31 +149,43 @@ def test_session_content_has_no_document_production_notes():
             assert phrase not in content, f"Production note in {source}: {phrase}"
 
 
-def test_every_chapter_has_tabs_with_exact_source_and_line_links(site_builder, source_tree):
+def test_core_examples_are_short_commented_source_below_concepts(site_builder, source_tree):
     before = {name: (source_tree / name).read_bytes() for name in CODE_FILES}
     output = site_builder.build_source(source_tree)
     for chapter in site_builder.CHAPTERS:
         content = (output / f"{chapter.slug}.md").read_text(encoding="utf-8")
-        assert '=== "개념·도식"' in content, chapter.slug
-        assert '=== "코드와 해설"' in content, chapter.slug
+        assert '=== "' not in content, chapter.slug
+        assert 'class="code-notes"' not in content
         links = re.findall(r"\[([^\s]+) · L(\d+)–L(\d+)\]\((https://github.com/[^)]+)\)", content)
         blocks = re.findall(
             r'```\w+ linenums="(\d+)" hl_lines="[\d ]+"\n(.*?)\n\s*```', content, re.DOTALL
         )
-        assert links and len(links) == len(blocks), chapter.slug
+        assert len(links) == len(blocks), chapter.slug
+        assert len(blocks) <= (2 if chapter.slug == "08-serving" else 1)
+        if chapter.slug in {"01-overview", "02-architecture", "10-operations", "11-workflow"}:
+            assert not blocks
+        else:
+            assert blocks
+            assert content.index("## 핵심 코드") > content.index(f"images/{chapter.diagram}")
         for (path, start, end, url), (first, code) in zip(links, blocks, strict=True):
             assert f"#L{start}-L{end}" in url
             assert first == start
+            assert 4 <= int(end) - int(start) + 1 <= 12
+            assert "  # " in code
+            without_comments = "\n".join(line.partition("  # ")[0] for line in code.splitlines())
             actual = (source_tree / path).read_text(encoding="utf-8").splitlines()
-            assert dedent(code).rstrip() == dedent("\n".join(actual[int(start) - 1 : int(end)]))
-        assert content.count('class="code-notes"') == len(links)
+            assert dedent(without_comments).rstrip() == dedent(
+                "\n".join(actual[int(start) - 1 : int(end)])
+            )
     assert before == {name: (source_tree / name).read_bytes() for name in CODE_FILES}
 
 
 def test_changed_source_marker_blocks_site_build(site_builder, source_tree):
     score = source_tree / "demo" / "serving" / "score.py"
     score.write_text(
-        score.read_text(encoding="utf-8").replace("def init() -> None:", "def renamed_init():"),
+        score.read_text(encoding="utf-8").replace(
+            "_model = AutoModel.from_pretrained(", "_model = renamed_loader("
+        ),
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="marker"):
@@ -186,7 +198,6 @@ def test_source_links_are_pinned_to_build_commit(site_builder, source_tree):
     for chapter in site_builder.CHAPTERS:
         content = (output / f"{chapter.slug}.md").read_text(encoding="utf-8")
         links = re.findall(r"\[[^\]]+ · L\d+–L\d+\]\(([^)]+)\)", content)
-        assert links
         assert all(f"/blob/{revision}/" in link for link in links)
 
 
@@ -209,7 +220,7 @@ def test_navigation_and_page_numbers_follow_topic_order(site_builder, source_tre
 def test_duplicate_source_marker_blocks_site_build(site_builder, source_tree):
     score = source_tree / "demo" / "serving" / "score.py"
     score.write_text(
-        score.read_text(encoding="utf-8") + "\ndef init() -> None:\n    pass\n",
+        score.read_text(encoding="utf-8") + "\n_model = AutoModel.from_pretrained(\n",
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="found 2"):

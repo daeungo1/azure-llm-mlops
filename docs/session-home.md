@@ -57,7 +57,7 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 ## Azure ML 주요 기능 11개 챕터
 
 데이터·환경·실험에서 Pipeline과 모델로, 외부 학습과 CPU 서빙으로 이어집니다.
-각 챕터의 **개념·도식 / 코드와 해설** 탭에서 동작 원리와 실제 구현을 함께 살펴봅니다.
+개념과 도식을 중심으로 살펴보고, 필요한 항목에서는 아래의 짧은 코드 예제를 참고합니다.
 
 <div class="grid cards chapter-cards" markdown>
 

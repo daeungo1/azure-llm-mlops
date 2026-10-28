@@ -7,7 +7,6 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from textwrap import indent
 from urllib.parse import quote, urlsplit
 
 if __package__:
@@ -195,10 +194,10 @@ def build_source(root: Path, revision: str = "main") -> Path:
         if chapter.slug in EXTRA_DIAGRAMS:
             diagram, caption = EXTRA_DIAGRAMS[chapter.slug]
             concepts += f"\n\n![{caption}](images/{diagram})\n\n[도식 크게 보기](images/{diagram})"
-        text += '=== "개념·도식"\n\n' + indent(concepts, "    ")
-        text += '\n\n=== "코드와 해설"\n\n' + indent(
-            render_examples(root, chapter.slug, revision), "    "
-        )
+        text += concepts
+        examples = render_examples(root, chapter.slug, revision)
+        if examples:
+            text += "\n\n" + examples
         (output / f"{chapter.slug}.md").write_text(text, encoding="utf-8")
     return output
 
