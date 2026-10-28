@@ -1,12 +1,19 @@
 """Generate the public session pages from an explicit source allowlist."""
 
 import json
+import os
 import posixpath
 import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from textwrap import indent
 from urllib.parse import quote, urlsplit
+
+if __package__:
+    from .session_examples import MESSAGES, render_examples
+else:
+    from session_examples import MESSAGES, render_examples
 
 
 @dataclass(frozen=True)
@@ -51,8 +58,18 @@ CHAPTERS = (
         "11-workflow", "demo-workflow.svg", "코드 검증 CI와 운영자 실행·모델 운영 자동화의 차이."
     ),
 )
+# Follow the topic order while preserving the published chapter URLs and README sections.
+CHAPTER_ORDER = (1, 2, 3, 7, 5, 4, 6, 9, 8, 10, 11)
+EXTRA_DIAGRAMS = {
+    "01-overview": ("reproducible-run.svg", "코드·데이터·환경·Compute와 실행·모델의 연결"),
+    "02-architecture": (
+        "registry-asset-boundaries.svg",
+        "공유 Registry 자산과 Workspace 실행 리소스의 경계",
+    ),
+}
 SVG_FILES = tuple(chapter.diagram for chapter in CHAPTERS) + (
     "multi-team-architecture.svg",
+    *[name for name, _ in EXTRA_DIAGRAMS.values()],
     "ktc-case/01-shared-isolation.svg",
     "ktc-case/02-plan-a-architecture.svg",
     "ktc-case/03-plan-a-project-isolation.svg",
@@ -132,7 +149,7 @@ def public_markdown(source: Path, text: str) -> str:
     )
 
 
-def build_source(root: Path) -> Path:
+def build_source(root: Path, revision: str = "main") -> Path:
     root = root.resolve()
     output = root / ".site-content"
     if output.is_symlink():
@@ -157,8 +174,10 @@ def build_source(root: Path) -> Path:
             text = public_markdown(Path(source), (root / source).read_text(encoding="utf-8"))
             if target == "index.md":
                 cards = "\n\n".join(
-                    f"- **[{title}]({chapter.slug}.md)**\n\n    {chapter.description}"
-                    for chapter, (title, _) in zip(CHAPTERS, chapters.values(), strict=True)
+                    f"- **[{position}. {chapters[number][0].split('. ', 1)[1]}]"
+                    f"({CHAPTERS[number - 1].slug}.md)**\n\n"
+                    f"    {CHAPTERS[number - 1].description}"
+                    for position, number in enumerate(CHAPTER_ORDER, 1)
                 )
                 text = text.replace("<!-- SESSION_CHAPTERS -->", cards)
             destination.write_text(text, encoding="utf-8")
@@ -166,18 +185,28 @@ def build_source(root: Path) -> Path:
             shutil.copyfile(root / source, destination)
     for number, chapter in enumerate(CHAPTERS, 1):
         title, body = chapters[number]
+        title = f"{CHAPTER_ORDER.index(number) + 1}. {title.split('. ', 1)[1]}"
         body = re.sub(r"^(#{3,6}) ", lambda match: match[1][1:] + " ", body, flags=re.MULTILINE)
         text = (
             f"---\ntitle: {json.dumps(title, ensure_ascii=False)}\n"
             f"description: {json.dumps(chapter.description, ensure_ascii=False)}\n---\n\n"
         )
-        text += public_markdown(Path("README.md"), body)
+        concepts = f"## {MESSAGES[chapter.slug]}\n\n" + public_markdown(Path("README.md"), body)
+        if chapter.slug in EXTRA_DIAGRAMS:
+            diagram, caption = EXTRA_DIAGRAMS[chapter.slug]
+            concepts += f"\n\n![{caption}](images/{diagram})\n\n[도식 크게 보기](images/{diagram})"
+        text += '=== "개념·도식"\n\n' + indent(concepts, "    ")
+        text += '\n\n=== "코드와 해설"\n\n' + indent(
+            render_examples(root, chapter.slug, revision), "    "
+        )
         (output / f"{chapter.slug}.md").write_text(text, encoding="utf-8")
     return output
 
 
 def main() -> int:
-    destination = build_source(Path(__file__).resolve().parents[1])
+    destination = build_source(
+        Path(__file__).resolve().parents[1], revision=os.environ.get("GITHUB_SHA", "main")
+    )
     print(f"Generated 11 public chapters and allowlisted assets: {destination}")
     return 0
 

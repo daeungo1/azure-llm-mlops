@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 490" role="img" aria-labelledby="title desc">
+  <title id="title">모델 재현을 위한 코드·데이터·환경·Compute의 연결</title>
+  <desc id="desc">코드, 데이터, 환경, Compute의 조건이 Job과 MLflow run에 연결되고 등록 모델의 생성 근거가 됩니다. 동일 조건의 기록은 재현의 출발점이며 결과의 완전한 동일성을 보장하지는 않습니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
+    <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:18px}.title{font-size:27px;font-weight:700}.heading{font-size:21px;font-weight:700}.small{font-size:16px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1080" height="490" rx="16" fill="#fff"/>
+  <text x="32" y="46" class="title">모델 하나를 다시 만들기 위한 네 가지 입력</text>
+  <g class="node"><rect x="32" y="86" width="320" height="72" rx="10" fill="#eef6ff" stroke="#83a9ca"/><text x="52" y="116" class="heading">CODE / 코드</text><text x="52" y="143" class="small">Git commit · 학습 스크립트 · Launcher</text></g>
+  <g class="node"><rect x="32" y="174" width="320" height="72" rx="10" fill="#edf8f3" stroke="#89b9a2"/><text x="52" y="204" class="heading">DATA / 데이터</text><text x="52" y="231" class="small">Data asset 이름:버전 · 평가 분할</text></g>
+  <g class="node"><rect x="32" y="262" width="320" height="72" rx="10" fill="#f4f2fb" stroke="#aea2ce"/><text x="52" y="292" class="heading">ENVIRONMENT / 환경</text><text x="52" y="319" class="small">기본 이미지 · 의존성 · 생성 이미지 digest</text></g>
+  <g class="node"><rect x="32" y="350" width="320" height="72" rx="10" fill="#fff4e8" stroke="#d2af80"/><text x="52" y="380" class="heading">COMPUTE / 실행 자원</text><text x="52" y="407" class="small">CPU·GPU · 실행 위치 · 자원 설정</text></g>
+  <path class="edge" d="M352 122H390V254H430"/>
+  <path class="edge" d="M352 210H390V254H430"/>
+  <path class="edge" d="M352 298H390V254H430"/>
+  <path class="edge" d="M352 386H390V254H430"/>
+  <g class="node"><rect x="430" y="180" width="250" height="148" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="452" y="222" class="heading">Job · MLflow Run</text><text x="452" y="263">실행 조건과 지표</text><text x="452" y="299">코드 · 로그 · Artifact</text></g>
+  <path class="edge" d="M680 254H758"/>
+  <g class="node"><rect x="758" y="180" width="290" height="148" rx="12" fill="#edf8f3" stroke="#89b9a2"/><text x="780" y="222" class="heading">Model / 이름:버전</text><text x="780" y="263">배포 후보와 평가 근거</text><text x="780" y="299">원본 Job으로 역추적</text></g>
+  <text x="32" y="466" class="small">조건 기록은 재현의 출발점입니다. seed·분할·런타임 차이와 비결정성도 함께 확인합니다.</text>
+</svg>

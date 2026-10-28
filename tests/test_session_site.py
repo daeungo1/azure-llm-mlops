@@ -1,6 +1,8 @@
 import importlib
+import re
 import shutil
 from pathlib import Path
+from textwrap import dedent
 
 import pytest
 
@@ -13,6 +15,17 @@ CASE_FIGURES = (
     "05-plan-b-project-isolation.svg",
     "06-plan-c-architecture.svg",
     "07-plan-c-project-isolation.svg",
+)
+CODE_FILES = (
+    "demo/pipeline.py",
+    "demo/training.py",
+    "demo/endpoint.py",
+    "demo/serving/score.py",
+    "demo/workspace.py",
+    "demo/multiteam.py",
+    "demo/registry_probe/probe.py",
+    "infra/main.bicep",
+    ".github/workflows/ci.yml",
 )
 
 
@@ -27,7 +40,7 @@ def site_builder():
 
 @pytest.fixture
 def source_tree(tmp_path, site_builder):
-    sources = ["README.md", *site_builder.PUBLIC_FILES]
+    sources = ["README.md", *site_builder.PUBLIC_FILES, *CODE_FILES]
     for name in sources:
         target = tmp_path / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -134,6 +147,78 @@ def test_session_content_has_no_document_production_notes():
         content = (ROOT / source).read_text(encoding="utf-8")
         for phrase in ("원문", "공개를 허용", "일반화했", "SVG 7개", "Appendix SVG"):
             assert phrase not in content, f"Production note in {source}: {phrase}"
+
+
+def test_every_chapter_has_tabs_with_exact_source_and_line_links(site_builder, source_tree):
+    before = {name: (source_tree / name).read_bytes() for name in CODE_FILES}
+    output = site_builder.build_source(source_tree)
+    for chapter in site_builder.CHAPTERS:
+        content = (output / f"{chapter.slug}.md").read_text(encoding="utf-8")
+        assert '=== "개념·도식"' in content, chapter.slug
+        assert '=== "코드와 해설"' in content, chapter.slug
+        links = re.findall(r"\[([^\s]+) · L(\d+)–L(\d+)\]\((https://github.com/[^)]+)\)", content)
+        blocks = re.findall(
+            r'```\w+ linenums="(\d+)" hl_lines="[\d ]+"\n(.*?)\n\s*```', content, re.DOTALL
+        )
+        assert links and len(links) == len(blocks), chapter.slug
+        for (path, start, end, url), (first, code) in zip(links, blocks, strict=True):
+            assert f"#L{start}-L{end}" in url
+            assert first == start
+            actual = (source_tree / path).read_text(encoding="utf-8").splitlines()
+            assert dedent(code).rstrip() == dedent("\n".join(actual[int(start) - 1 : int(end)]))
+        assert content.count('class="code-notes"') == len(links)
+    assert before == {name: (source_tree / name).read_bytes() for name in CODE_FILES}
+
+
+def test_changed_source_marker_blocks_site_build(site_builder, source_tree):
+    score = source_tree / "demo" / "serving" / "score.py"
+    score.write_text(
+        score.read_text(encoding="utf-8").replace("def init() -> None:", "def renamed_init():"),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="marker"):
+        site_builder.build_source(source_tree)
+
+
+def test_source_links_are_pinned_to_build_commit(site_builder, source_tree):
+    revision = "a" * 40
+    output = site_builder.build_source(source_tree, revision=revision)
+    for chapter in site_builder.CHAPTERS:
+        content = (output / f"{chapter.slug}.md").read_text(encoding="utf-8")
+        links = re.findall(r"\[[^\]]+ · L\d+–L\d+\]\(([^)]+)\)", content)
+        assert links
+        assert all(f"/blob/{revision}/" in link for link in links)
+
+
+def test_navigation_and_page_numbers_follow_topic_order(site_builder, source_tree):
+    output = site_builder.build_source(source_tree)
+    home = (output / "index.md").read_text(encoding="utf-8")
+    navigation = (ROOT / "mkdocs.yml").read_text(encoding="utf-8").split("nav:", 1)[1]
+    slugs = [site_builder.CHAPTERS[number - 1].slug for number in site_builder.CHAPTER_ORDER]
+    assert [home.index(f"({slug}.md)") for slug in slugs] == sorted(
+        home.index(f"({slug}.md)") for slug in slugs
+    )
+    assert [navigation.index(f"{slug}.md") for slug in slugs] == sorted(
+        navigation.index(f"{slug}.md") for slug in slugs
+    )
+    for position, slug in enumerate(slugs, 1):
+        content = (output / f"{slug}.md").read_text(encoding="utf-8")
+        assert f'title: "{position}. ' in content
+
+
+def test_duplicate_source_marker_blocks_site_build(site_builder, source_tree):
+    score = source_tree / "demo" / "serving" / "score.py"
+    score.write_text(
+        score.read_text(encoding="utf-8") + "\ndef init() -> None:\n    pass\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="found 2"):
+        site_builder.build_source(source_tree)
+
+
+def test_invalid_source_revision_is_rejected(site_builder, source_tree):
+    with pytest.raises(ValueError, match="revision"):
+        site_builder.build_source(source_tree, revision="../private")
 
 
 def test_workflow_diagram_has_no_presentation_plan():

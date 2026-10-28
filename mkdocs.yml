@@ -47,6 +47,11 @@ markdown_extensions:
       slugify: !!python/name:markdown.extensions.toc.slugify_unicode
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      pygments_lang_class: true
 extra_css:
   - stylesheets/session.css
 nav:
@@ -56,13 +61,13 @@ nav:
       - 02. 아키텍처 · 팀 격리: 02-architecture.md
   - Track · Version:
       - 03. Data · Datastore: 03-data.md
-      - 04. Jobs · Pipeline: 04-pipelines.md
+      - 04. Environment · ACR: 07-environments.md
       - 05. MLflow 실험 비교: 05-mlflow.md
-      - 06. Model 패키지 · 출처: 06-models.md
-      - 07. Environment · ACR: 07-environments.md
+      - 06. Jobs · Pipeline: 04-pipelines.md
+      - 07. Model 패키지 · 출처: 06-models.md
   - Serve · Operate:
-      - 08. HF CPU 서빙: 08-serving.md
-      - 09. 외부 학습 연계: 09-external.md
+      - 08. 외부 학습 연계: 09-external.md
+      - 09. HF CPU 서빙: 08-serving.md
       - 10. 보안 · 관측 · 비용: 10-operations.md
       - 11. CI · 실행 Workflow: 11-workflow.md
   - 검증:
