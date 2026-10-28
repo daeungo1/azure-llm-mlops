@@ -8,23 +8,20 @@ ms.date: 2026-10-28
 
 여러 과제가 하나의 GPU 학습 환경을 공유하면서 데이터·권한·비용을 구분해야 하는 상황을 다룹니다.
 기존 Slurm 기반 학습을 유지하고, 실험·데이터·모델 이력을 관리할 계층을 선택하는 것이 핵심입니다.
-제공된 배경 시나리오와 작성자가 공개를 허용한 **원문 기반 SVG 7개**를 포함한 Discussion용 설계 비교입니다.
-원문 도식의 배치·연결·레이블을 유지하고, 정확한 장비 규모와 내부 시스템 이름을 일반화한 기존 SVG를 사용합니다.
 
 > [!IMPORTANT]
-> 아래 Plan A/B/C는 검토 대안입니다. 고객 환경에 배포되었거나 운영 적합성이 입증되었다는 뜻이 아닙니다.
-> 현재 데모의 실측 결과는 [배포·검증 기록](deployment-status.md)과 구분합니다.
-> 그림의 인증·등록·승격 방식은 원문 제안이며, 제품 동작이 검증된 표준 구성으로 해석하지 않습니다.
+> Plan A/B/C는 공유 학습 환경의 설계 대안입니다.
+> 실제 데모에서 확인한 범위는 [배포·검증 기록](deployment-status.md)에서 구분합니다.
 
 ## 1. 먼저 구분할 경계: 연산 공유와 과제 격리
 
-![원문 그림 1: 공유 GPU·Slurm·Lustre와 과제별 Identity·Storage·Registry 경계](images/ktc-case/01-shared-isolation.svg)
+![공유 GPU·Slurm·Lustre와 과제별 Identity·Storage·Registry 경계](images/ktc-case/01-shared-isolation.svg)
 
 [그림 1 SVG 크게 보기](images/ktc-case/01-shared-isolation.svg)
 
-원문 시나리오는 약 10개 과제가 공유 GPU 풀을 사용하는 구성입니다.
+약 10개 과제가 공유 GPU 풀을 사용하는 구성입니다.
 파랑은 공유 연산 또는 Registry, 초록은 과제 데이터 경로, 점선은 RG 경계입니다.
-SP 인증서 파일 배포 방식 등은 원문 제안이며, 현재 데모에서 구현하거나 운영 보안 적합성을 검증하지 않았습니다.
+SP 인증서 파일 배포 방식의 운영 보안 적합성은 별도 검증 대상입니다.
 
 공유 자원은 GPU 연산 풀, 스케줄러, 학습용 파일시스템입니다.
 반면 데이터 접근 주체, 모델·실험의 조회·등록 권한과 비용 귀속은 과제별로 구분해야 합니다.
@@ -44,8 +41,7 @@ SP 인증서 파일 배포 방식 등은 원문 제안이며, 현재 데모에�
 
 ## 2. Plan A/B/C: 형상관리 계층의 선택
 
-아래 원문 도식은 각 대안의 제안 구조입니다.
-화살표만으로 데이터 복사 여부나 Slurm 스케줄러의 관리형 서비스 통합을 단정하지 않습니다.
+세 대안 모두 기존 Slurm 학습을 유지하면서 실험·데이터·모델 관리 계층을 구성합니다.
 어느 대안이든 코드·이미지·데이터 버전과 외부 Job 식별자를 연결하는 기준이 필요합니다.
 
 | 비교 항목 | Plan A · Azure ML | Plan B · 자체 MLflow + DVC | Plan C · Databricks + Unity Catalog |
@@ -60,7 +56,7 @@ SP 인증서 파일 배포 방식 등은 원문 제안이며, 현재 데모에�
 
 ### Plan A: 연산은 유지하고 AML 관리 계층 활용
 
-![원문 그림 2: Slurm 학습과 과제별 AML Workspace의 형상관리 연결](images/ktc-case/02-plan-a-architecture.svg)
+![Slurm 학습과 과제별 AML Workspace의 형상관리 연결](images/ktc-case/02-plan-a-architecture.svg)
 
 [그림 2 SVG 크게 보기](images/ktc-case/02-plan-a-architecture.svg)
 
@@ -73,17 +69,17 @@ AML의 MLflow 지원 범위는 OSS 전체 API와 같지 않습니다.
 모델 유형과 API·Artifact 경로별로 검증해야 하며, 단순히 “메타데이터만 관리하므로 복사가 없다”고 가정하지 않습니다.
 외부 run 기록만으로 관리형 Pipeline graph나 동일 수준의 lineage가 자동 생성되는 것도 아닙니다.
 
-![원문 그림 3: 공유 GPU·Lustre 위에 과제별 AML Workspace·Identity·Storage를 분리한 10개 과제 격리 뷰](images/ktc-case/03-plan-a-project-isolation.svg)
+![공유 GPU·Lustre 위에 과제별 AML Workspace·Identity·Storage를 분리한 10개 과제 격리 뷰](images/ktc-case/03-plan-a-project-isolation.svg)
 
 [그림 3 SVG 크게 보기](images/ktc-case/03-plan-a-project-isolation.svg)
 
 과제별 RG·Workspace·Identity·Storage와 공통 연산의 경계를 보여줍니다.
-그림의 `stage` 표기는 원문 개념 표현입니다.
+그림의 `stage`는 모델 승격 단계를 나타냅니다.
 현재 데모는 MLflow registry stage가 아니라 명시적인 AML 모델 버전으로 공유 자산을 소비합니다.
 
 ### Plan B: MLflow·DVC를 직접 운영
 
-![원문 그림 4: 과제별 MLflow·DB·Artifact 프록시와 DVC 데이터 참조](images/ktc-case/04-plan-b-architecture.svg)
+![과제별 MLflow·DB·Artifact 프록시와 DVC 데이터 참조](images/ktc-case/04-plan-b-architecture.svg)
 
 [그림 4 SVG 크게 보기](images/ktc-case/04-plan-b-architecture.svg)
 
@@ -95,7 +91,7 @@ Artifact 프록시를 구성하면 서버가 저장소 접근을 중계할 수 �
 클라이언트 직접 접근 여부와 필요한 Blob 권한은 서버 옵션·기존 실험의 Artifact URI에 따라 달라집니다.
 관리형 서비스 비용을 줄이는 선택이 운영 인력·인증·백업·복구 비용까지 없애는 것은 아닙니다.
 
-![원문 그림 5: 공통 호스팅 기반에서 과제별 MLflow 인스턴스·DB·Blob 권한을 구분한 10개 과제 격리 뷰](images/ktc-case/05-plan-b-project-isolation.svg)
+![공통 호스팅 기반에서 과제별 MLflow 인스턴스·DB·Blob 권한을 구분한 10개 과제 격리 뷰](images/ktc-case/05-plan-b-project-isolation.svg)
 
 [그림 5 SVG 크게 보기](images/ktc-case/05-plan-b-project-isolation.svg)
 
@@ -104,7 +100,7 @@ Artifact 프록시를 구성하면 서버가 저장소 접근을 중계할 수 �
 
 ### Plan C: Databricks·Unity Catalog 활용
 
-![원문 그림 6: Slurm 외부 추적과 Databricks Workspace·Unity Catalog·ADLS 연결](images/ktc-case/06-plan-c-architecture.svg)
+![Slurm 외부 추적과 Databricks Workspace·Unity Catalog·ADLS 연결](images/ktc-case/06-plan-c-architecture.svg)
 
 [그림 6 SVG 크게 보기](images/ktc-case/06-plan-c-architecture.svg)
 
@@ -116,11 +112,11 @@ Unity Catalog에서 지원하는 lineage 기능이 외부 학습 과정 전체�
 데이터·Job·코드·이미지와의 연결을 어떤 API와 태그로 남길지 정해야 합니다.
 이 대안도 Slurm을 Databricks Compute로 이전하는 구성과 구분합니다.
 
-![원문 그림 7: 공통 UC Metastore와 과제별 Workspace·Catalog 바인딩·Identity·Storage의 10개 과제 격리 뷰](images/ktc-case/07-plan-c-project-isolation.svg)
+![공통 UC Metastore와 과제별 Workspace·Catalog 바인딩·Identity·Storage의 10개 과제 격리 뷰](images/ktc-case/07-plan-c-project-isolation.svg)
 
 [그림 7 SVG 크게 보기](images/ktc-case/07-plan-c-project-isolation.svg)
 
-원문은 공통 Metastore와 과제별 Workspace·Catalog 바인딩·Access Connector·Storage를 제안합니다.
+공통 Metastore와 과제별 Workspace·Catalog 바인딩·Access Connector·Storage로 구성합니다.
 Catalog의 `ISOLATED` 바인딩과 과제 권한은 PoC 대상이며,
 관리형 API·스토리지·네트워크와 Compute의 청구 조건을 나눠 확인해야 합니다.
 Databricks Compute를 쓰지 않는다는 이유만으로 전체 비용이 없다고 가정하지 않습니다.

@@ -32,7 +32,7 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 
 <div class="session-stats" markdown>
 
-**11** 개념 챕터 · **12** 본문 SVG · **7** Appendix SVG · **3** 팀별 RG
+**11** 개념 챕터 · **3** 팀별 RG · **1** 공용 ML Registry
 
 </div>
 
@@ -95,8 +95,6 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 ## Appendix · 배경 시나리오와 설계 대안
 
 공유 GPU·Slurm 환경에서 팀별 격리와 비용 배분을 논의할 때 참고할 수 있습니다.
-작성자가 공개를 허용한 원문 기반 SVG 7개와 Plan A/B/C 비교, 현재 데모와의 차이를 정리했습니다.
+Azure ML, 자체 MLflow·DVC, Databricks·Unity Catalog의 설계 대안과 현재 데모의 검증 범위를 비교합니다.
 
 [Appendix · Discussion 열기](appendix-discussion.md){ .md-button }
-
-원본 HTML·PPTX, 자격 증명과 로컬 실행 파일은 공개 사이트에 포함하지 않습니다.

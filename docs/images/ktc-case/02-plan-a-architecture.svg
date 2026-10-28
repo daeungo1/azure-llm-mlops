@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc" width="1000" height="520" style="max-width:100%;height:auto"><title id="title">Plan A: Slurm 학습은 그대로, 형상만 과제별 AML Workspace</title><desc id="desc">원문 설계안의 그림 2. GPU job은 Metric만, dm-projNN은 실물 업로드와 버전 등록을 맡습니다. AML에는 대용량 Artifact를 올리지 않습니다. 실제 데모 배포 검증 결과가 아닙니다. GPU 규모와 내부 서빙 이름은 일반화했습니다.</desc><style><![CDATA[:root{
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc" width="1000" height="520" style="max-width:100%;height:auto"><title id="title">Plan A: Slurm 학습은 그대로, 형상만 과제별 AML Workspace</title><desc id="desc">Slurm 학습의 지표 추적과 Data Mover의 파일 이동·모델 버전 등록을 분리하는 Azure ML 설계입니다.</desc><style><![CDATA[:root{
   --bg:#f7f7f5; --paper:#ffffff; --ink:#1b1d21; --quiet:#5b616b; --line:#d9dbe0; --soft:#eef0f3;
   --accent:#2563eb; --accent-soft:#e8efff; --accent2:#0f766e; --accent2-soft:#e3f4f1; --warn:#b45309; --warn-soft:#fdf3e4;
   --box:#ffffff; --box-stroke:#8a909a; --conn:#7a808a;

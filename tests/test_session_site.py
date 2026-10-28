@@ -124,6 +124,18 @@ def test_readme_starts_with_site_link():
     )
 
 
+def test_session_content_has_no_document_production_notes():
+    sources = [
+        "docs/session-home.md",
+        "docs/appendix-discussion.md",
+        *[f"docs/images/ktc-case/{name}" for name in CASE_FIGURES],
+    ]
+    for source in sources:
+        content = (ROOT / source).read_text(encoding="utf-8")
+        for phrase in ("원문", "공개를 허용", "일반화했", "SVG 7개", "Appendix SVG"):
+            assert phrase not in content, f"Production note in {source}: {phrase}"
+
+
 def test_workflow_diagram_has_no_presentation_plan():
     svg = (ROOT / "docs" / "images" / "demo-workflow.svg").read_text(encoding="utf-8")
     assert 'id="presentation"' not in svg
