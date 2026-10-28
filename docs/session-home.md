@@ -1,0 +1,96 @@
+---
+title: Azure ML MLOps Session
+description: 도식에서 시작해 실제 Studio 자산과 실행 근거로 이어지는 KT MLOps 세션
+hide:
+  - toc
+---
+
+<div class="session-hero" markdown>
+
+<p class="eyebrow">TRACK · VERSION · SERVE</p>
+
+## Azure ML로 연결하는 MLOps
+
+데이터에서 실험과 모델로, 그리고 인증된 CPU 서빙으로.
+도식으로 전체 흐름을 이해하고 실제 Azure ML Studio에서 근거를 확인하는 세션입니다.
+
+[01번부터 시작하기](01-overview.md){ .md-button .md-button--primary }
+[실제 검증 기록](deployment-status.md){ .md-button }
+
+<p class="session-meta">KT 교육 세션 · 2026.10.29 · Korea Central · 합성 데이터</p>
+
+</div>
+
+## 한 장으로 보는 데모
+
+![Azure ML Workspace 중심의 학습·MLflow·HF 서빙과 연결 리소스](images/azure-architecture.svg)
+
+[도식 원본 크게 보기](images/azure-architecture.svg)
+
+Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모델 파일과 실행 이미지를 보관합니다.
+학습한 churn 모델의 등록 경로와 **별도의 사전학습 MiniLM CPU 서빙 경로**를 구분해 살펴봅니다.
+
+<div class="session-stats" markdown>
+
+**11** 개념 챕터 · **12** SVG 도식 · **3** 팀별 RG · **1** 공용 ML Registry
+
+</div>
+
+## 오늘 확인할 세 가지
+
+<div class="grid cards" markdown>
+
+- **01 / Track**
+
+    동일한 데이터·평가 조건에서 실험을 비교하고 실행 출처를 남깁니다.
+
+- **02 / Version**
+
+    Data, Model, Environment를 각각 버전이 있는 자산으로 관리합니다.
+
+- **03 / Serve**
+
+    Endpoint와 Deployment를 나누고 인증·정상 추론·입력 오류를 확인합니다.
+
+</div>
+
+## 도식으로 따라가는 11개 챕터
+
+각 챕터는 **SVG → 개념 설명 → Studio 체크포인트**로 이어집니다.
+본문과 도식은 README의 1~11번을 그대로 재사용하므로 설명이 서로 달라지지 않습니다.
+
+<div class="grid cards chapter-cards" markdown>
+
+<!-- SESSION_CHAPTERS -->
+
+</div>
+
+## 팀별 격리와 공용 자산
+
+![독립된 팀 RG 세 개와 공용 Registry의 자산 공유 및 비용 경계](images/multi-team-architecture.svg)
+
+[도식 원본 크게 보기](images/multi-team-architecture.svg)
+
+약 10개 팀 확장 논의를 3개 팀으로 축소했습니다.
+기존 검증 Workspace를 유지하면서 팀별 RG·Workspace·Storage·Compute를 별도로 배포했습니다.
+공용 자산을 소비한 세 팀의 Job에서 자기 Blob 200과 다른 팀 Blob 403을 확인했습니다.
+이는 실행 identity의 순환 3개 경로 검증이며, 팀 사용자 그룹 전체의 격리 검증은 아닙니다.
+
+## 확인한 범위와 다음 과제
+
+!!! success "실행 근거가 있는 항목"
+
+    두 클라우드 학습·MLflow 비교, Data·Model 버전, Custom 이미지 빌드,
+    외부 PC 추적, HF Endpoint 200·401·424, 세 팀의 Registry 소비와 Blob 권한 경계를 확인했습니다.
+    실행 시점과 세부 조건은 검증 기록에 구분했습니다.
+
+!!! warning "운영 완성으로 해석하지 않기"
+
+    자동 재학습·품질 승인·승격·롤백, Drift·SLO, 실제 Slurm 통합은 구현 범위 밖입니다.
+    로그인 후 Studio 탭별 시각적 점검은 발표자가 수행해야 합니다.
+    HF는 영어 임베딩 모델이며 추가 학습하거나 한국어 품질을 검증한 구성이 아닙니다.
+
+[발표자 가이드](session-guide.md) · [배포·검증 기록](deployment-status.md) ·
+[코드와 재실행 참고](https://github.com/daeungo1/azure-llm-mlops#12-재실행개발-참고)
+
+이 공개 사이트에는 고객 내부 원문, 비공개 아키텍처 이미지, PPTX, 자격 증명과 로컬 실행 파일을 포함하지 않습니다.

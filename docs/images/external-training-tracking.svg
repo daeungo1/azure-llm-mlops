@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 440" role="img" aria-labelledby="title desc">
+  <title id="title">외부 CPU 학습과 Azure ML 추적 위치 분리</title>
+  <desc id="desc">학습 연산은 외부 PC의 CPU에서 Data v2로 수행하고 Entra 인증 및 tracking URI를 통해 Azure ML에 지표와 모델을 기록합니다. 실제 Slurm 통합이나 Azure ML 관리형 Pipeline graph가 자동 구성되는 것은 아닙니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
+    <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1080" height="440" rx="16" fill="#fff"/>
+  <text x="36" y="46" class="title">연산은 밖에서, 실험 기록과 모델 관리는 AML에서</text>
+  <g class="node"><rect x="36" y="121" width="350" height="218" rx="12" fill="#f4f2fb" stroke="#aea2ce"/><text x="60" y="163" class="heading">외부 PC / CPU</text><text x="60" y="205">Data v2 · 로컬 학습</text><text x="60" y="245">execution_source:</text><text x="60" y="279">external-local-cpu</text><text x="60" y="316" class="small">AML Compute에서 실행한 Job 아님</text></g>
+  <text x="470" y="105" class="small">Entra 인증 + MLflow tracking URI</text>
+  <path class="edge" d="M386 230H500"/>
+  <g class="node"><rect x="500" y="121" width="544" height="218" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="524" y="163" class="heading">Azure ML Workspace</text><text x="524" y="205">kt-external-mlflow</text><text x="524" y="243">params · metrics · artifacts</text><text x="524" y="281">telco-churn-external:1</text><text x="524" y="316" class="small">외부 run과 등록 모델의 기록 보관</text></g>
+  <text x="36" y="385">위치는 분리해도 인증·데이터 버전·평가 조건은 명시해야 합니다.</text>
+  <text x="36" y="419" class="small">Slurm 연계의 개념적 출발점 / 실제 Slurm 통합·관리형 Pipeline graph·동일 lineage는 미검증</text>
+</svg>

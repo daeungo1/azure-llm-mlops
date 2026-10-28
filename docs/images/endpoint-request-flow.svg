@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 460" role="img" aria-labelledby="title desc">
+  <title id="title">인증된 Endpoint와 MiniLM CPU Deployment의 요청 경로</title>
+  <desc id="desc">Entra 토큰을 가진 요청이 aad_token Endpoint를 통해 blue Deployment에 전달됩니다. MiniLM 문장 임베딩과 cosine similarity로 영어 문장을 분류합니다. 정상 200, 무인증 401, 입력 오류 외부 424 및 내부 400을 검증했습니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
+    <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1080" height="460" rx="16" fill="#fff"/>
+  <text x="36" y="46" class="title">Endpoint는 주소·인증, Deployment는 모델 실행 단위</text>
+  <g class="node"><rect x="36" y="105" width="280" height="196" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="56" y="145" class="heading">영어 요청</text><text x="56" y="187">Entra access token</text><text x="56" y="225">texts / JSON</text><text x="56" y="270" class="small">실제 고객 데이터 사용 안 함</text></g>
+  <g class="node"><rect x="400" y="105" width="280" height="196" rx="12" fill="#fff" stroke="#8daec6"/><text x="420" y="145" class="heading">Online Endpoint</text><text x="420" y="187" class="small">kt-hf-cpu-secure</text><text x="420" y="225">aad_token 인증</text><text x="420" y="270" class="small">blue에 traffic 100%</text></g>
+  <g class="node"><rect x="764" y="105" width="280" height="196" rx="12" fill="#f4f2fb" stroke="#aea2ce"/><text x="784" y="145" class="heading">blue / CPU 1대</text><text x="784" y="184">MiniLM → 384차원</text><text x="784" y="221">cosine similarity</text><text x="784" y="264" class="small">billing / network /</text><text x="784" y="286" class="small">cancellation</text></g>
+  <path class="edge" d="M316 203H400M680 203H764"/>
+  <g class="node"><rect x="36" y="335" width="300" height="66" rx="10" fill="#edf8f3" stroke="#89b9a2"/><text x="56" y="376" class="heading">정상 추론 / 200</text></g>
+  <g class="node"><rect x="390" y="335" width="300" height="66" rx="10" fill="#fff4e8" stroke="#d2af80"/><text x="410" y="376" class="heading">무인증 / 401</text></g>
+  <g class="node"><rect x="744" y="335" width="300" height="66" rx="10" fill="#fff4e8" stroke="#d2af80"/><text x="764" y="376">입력 오류 / 424 · 내부 400</text></g>
+  <text x="36" y="437" class="small">추가 학습 없는 영어 임베딩 모델 / 한국어 품질·기타 범주·보정된 확률을 제공하지 않습니다.</text>
+</svg>

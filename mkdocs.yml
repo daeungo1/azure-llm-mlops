@@ -1,0 +1,78 @@
+site_name: Azure ML MLOps Session
+site_description: KT 교육 데모로 살펴보는 Azure ML의 데이터·실험·모델 관리와 CPU 서빙
+site_url: https://daeungo1.github.io/azure-llm-mlops/
+repo_url: https://github.com/daeungo1/azure-llm-mlops
+repo_name: daeungo1/azure-llm-mlops
+docs_dir: .site-content
+site_dir: site
+use_directory_urls: true
+theme:
+  name: material
+  language: ko
+  font: false
+  icon:
+    logo: material/state-machine
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: custom
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: 어두운 화면으로 전환
+    - scheme: slate
+      primary: custom
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: 밝은 화면으로 전환
+plugins:
+  - search:
+      lang: en
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      slugify: !!python/name:markdown.extensions.toc.slugify_unicode
+  - pymdownx.details
+  - pymdownx.superfences
+extra_css:
+  - stylesheets/session.css
+nav:
+  - 세션 시작: index.md
+  - MLOps 개념과 아키텍처:
+      - 01. MLOps Overview: 01-overview.md
+      - 02. 아키텍처 · 팀 격리: 02-architecture.md
+  - Track · Version:
+      - 03. Data · Datastore: 03-data.md
+      - 04. Jobs · Pipeline: 04-pipelines.md
+      - 05. MLflow 실험 비교: 05-mlflow.md
+      - 06. Model 패키지 · 출처: 06-models.md
+      - 07. Environment · ACR: 07-environments.md
+  - Serve · Operate:
+      - 08. HF CPU 서빙: 08-serving.md
+      - 09. 외부 학습 연계: 09-external.md
+      - 10. 보안 · 관측 · 비용: 10-operations.md
+      - 11. CI · 발표 Workflow: 11-workflow.md
+  - 시연과 검증:
+      - 발표자 가이드: session-guide.md
+      - 실제 배포 · 검증 기록: deployment-status.md
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    not_found: warn
+    anchors: warn
+extra:
+  generator: false

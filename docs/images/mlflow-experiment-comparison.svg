@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 500" role="img" aria-labelledby="title desc">
+  <title id="title">동일한 holdout에서 두 MLflow run 비교</title>
+  <desc id="desc">Data v1의 동일한 1125행 train과 375행 holdout으로 Logistic Regression과 Random Forest를 비교합니다. 각 run의 파라미터, 평가 지표, confusion matrix, 모델 패키지를 확인합니다. 데이터 v2의 외부 실험은 직접 순위 비교하지 않습니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
+    <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1080" height="500" rx="16" fill="#fff"/>
+  <text x="36" y="46" class="title">실험 비교의 출발점: 같은 데이터와 같은 평가 조건</text>
+  <g class="node"><rect x="230" y="80" width="620" height="90" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="254" y="116" class="heading">Data v1 · 같은 stratified holdout</text><text x="254" y="148">train 1,125 / holdout 375 · random seed 42</text></g>
+  <path class="edge" d="M400 170V208H276V232M680 170V208H804V232"/>
+  <g class="node"><rect x="36" y="232" width="480" height="168" rx="12" fill="#fff" stroke="#8daec6"/><text x="60" y="272" class="heading">Run A / Logistic Regression</text><text x="60" y="312">params · accuracy · F1 · ROC AUC</text><text x="60" y="351">confusion matrix · MLflow model</text><text x="60" y="381" class="small">실험: kt-telco-churn</text></g>
+  <g class="node"><rect x="564" y="232" width="480" height="168" rx="12" fill="#fff" stroke="#8daec6"/><text x="588" y="272" class="heading">Run B / Random Forest</text><text x="588" y="312">params · accuracy · F1 · ROC AUC</text><text x="588" y="351">confusion matrix · MLflow model</text><text x="588" y="381" class="small">같은 조건의 지표와 오분류를 함께 비교</text></g>
+  <text x="36" y="444">최신 버전 ≠ 최고 품질 / 작은 지표 차이를 과장하지 않습니다.</text>
+  <text x="36" y="477" class="small">Data v2를 사용한 외부 실험은 평가 조건이 달라 이 순위 비교에서 제외합니다.</text>
+</svg>

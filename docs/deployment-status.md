@@ -1,8 +1,127 @@
 ---
 title: 실제 Azure 배포 상태
 description: 교육 MLOps 완료 범위, 실제 ACR 이미지, 네트워크 설정 및 Endpoint 호출 검증 결과
-ms.date: 2026-10-27
+ms.date: 2026-10-28
 ---
+
+## 다중 팀 RG와 공용 Registry
+
+팀별 권한·비용 경계를 Workspace 이름이나 태그만으로 구분하지 않고,
+Korea Central에 세 개의 전용 Resource Group을 실제 배포했습니다.
+구독 배포 `kt-three-teams`와 공통 RG 배포 `kt-shared-registry`는 Succeeded입니다.
+
+| 구분 | Resource Group | Workspace 또는 Registry | 기본 인프라 |
+|---|---|---|---|
+| Team 1 | rg-kt-mlops-team-1 | mlw-ktmlops-secure-1 | 배포 성공 |
+| Team 2 | rg-kt-mlops-team-2 | mlw-ktmlops-secure-2 | 배포 성공 |
+| Team 3 | rg-kt-mlops-team-3 | mlw-ktmlops-secure-3 | 배포 성공 |
+| 공통 자산 | rg-kt-mlops | mlr-ktmlops-shared | 배포 성공 |
+| 기존 교육 이력·HF 서빙 | rg-kt-mlops | mlw-ktmlops-secure | 기존 검증 환경 유지 |
+
+각 팀 RG는 Storage, Key Vault, Premium ACR, Application Insights,
+Log Analytics, NSP와 Workspace를 전용으로 갖습니다.
+각 팀 CPU Compute는 DS3_v2, min=0, max=1로 생성 완료했으며,
+전용 subnet과 public IP 없는 노드 설정을 실제 API에서 확인했습니다.
+Workspace Private Endpoint는 세 팀 모두 Approved입니다.
+세 팀의 공유 자산 소비 Pipeline과 각 `consume` 노드는 모두 Completed입니다.
+아래 Job 로그와 검증 보고서에서 실제 추론·자기 데이터 읽기·상대 팀 권한 거부를 확인했습니다.
+
+![팀별 RG와 공용 Registry 구조](images/multi-team-architecture.svg)
+
+### 공통 자산과 네트워크 경계
+
+Azure ML Registry는 Model, Environment, Component를 공유하는 ML 자산 카탈로그입니다.
+컨테이너 이미지를 저장하는 ACR과는 별도 서비스입니다.
+기존 검증 Workspace에서 공유한 churn MLflow 모델 `telco-shared:1`과
+CPU 학습 환경 `kt-shared-cpu:1`, Registry에 직접 등록한 검증 Component
+`verify_shared_model:3`은 등록이 완료되었습니다.
+Component v1/v2는 AML 실행 명령의 공백 정규화로 Python 들여쓰기가 손상되어 실패했습니다.
+v2의 Registry 원문은 로컬과 동일했지만 실행 단계에서 다시 손상됨을 확인했습니다.
+v3는 신뢰된 로컬 코드 원문을 Base64로 직렬화해 한 줄 명령으로 전달하고,
+실행 시 복원합니다. 별도 코드 업로드나 입력 데이터의 실행은 하지 않습니다.
+Model·Environment v1은 유지했으며 기존 불변 Component 버전은 덮어쓰지 않았습니다.
+세 팀은 동일한 Model v1·Environment v1·Component v3를 사용했습니다.
+HF MiniLM을 재학습하거나 각 팀에 Endpoint 세 개를 복제하는 구성이 아닙니다.
+
+| 팀 | 완료된 Pipeline Job | 실제 예측 | 자기 Blob | 상대 팀 Blob |
+|---|---|---|---|---|
+| Team 1 | [plum_van_kv28bglrqg](https://ml.azure.com/runs/plum_van_kv28bglrqg?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops-team-1/workspaces/mlw-ktmlops-secure-1) | [1, 0, 1] | 200 | Team 2: 403 |
+| Team 2 | [gifted_deer_66y29xx9f5](https://ml.azure.com/runs/gifted_deer_66y29xx9f5?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops-team-2/workspaces/mlw-ktmlops-secure-2) | [1, 0, 1] | 200 | Team 3: 403 |
+| Team 3 | [strong_basin_qrgr4ykljk](https://ml.azure.com/runs/strong_basin_qrgr4ykljk?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops-team-3/workspaces/mlw-ktmlops-secure-3) | [1, 0, 1] | 200 | Team 1: 403 |
+
+세 상대 팀 응답의 오류 코드는 모두 `AuthorizationPermissionMismatch`입니다.
+자기 Blob의 팀 marker 내용도 일치했으며 운영자 토큰 대신 Compute managed identity를 사용했습니다.
+검증은 위 세 방향이며 여섯 방향 전체나 별도 Entra 사용자·그룹의 격리를 검증한 것은 아닙니다.
+실행 증적은 각 자식 Job의 `user_logs/std_log.txt`에 JSON으로 남습니다.
+수집 코드는 실제 자식 로그를 다운로드하고 응답·팀·예측 형태를 다시 검사한 뒤
+Job별 로컬 `verification.json`과 `multiteam.json`에 기록합니다.
+Pipeline named-output URI가 없어 SDK가 다운로드를 건너뛰는 경우를
+보고서 수집 성공으로 처리하지 않도록 검증했습니다.
+최종 로컬 검증은 pytest 39개 통과·1개 skip, Ruff 검사와 포맷 검사를 통과했습니다.
+네 개 SVG의 XML과 관련 문서의 로컬 링크 대상도 확인했습니다.
+Job 종료 후 세 팀 Compute는 모두 실제 노드 0대·Steady로 축소된 것을 확인했습니다.
+NAT·Private Endpoint·ACR 등은 노드가 0대여도 기본 비용이 발생합니다.
+
+Registry가 자동 생성한 관리형 RG의 Storage는 조직 정책으로 public 접근이 Disabled입니다.
+관리형 deny assignment를 제거하거나 Storage 쓰기 권한을 우회하지 않습니다.
+팀 Managed Network에서 해당 Storage의 Blob Private Endpoint를 추가하려 했지만,
+Workspace identity의 대상 Storage 읽기·연결 승인 권한이 없어 HTTP 400으로 거부되었습니다.
+연결 생성 이전의 검증 단계에서 거부되어 수동 승인할 Pending 연결도 없습니다.
+관리형 RG에 대한 일반 역할 추가도 deny assignment의 제한을 받으므로,
+상위 범위 권한을 넓히지 않는 사용자 관리 VNet 경로를 선택했습니다.
+각 팀에 전용 VNet, NAT, Blob/File/Vault 및 Workspace API·notebooks
+Private DNS와 Private Endpoint를 구성했으며,
+운영자가 허용된 Private Endpoint 작업으로 Registry Blob을 연결합니다.
+새 팀 Workspace는 자산·Job·Compute가 없는 상태에서 Workspace만 재생성해
+Managed Network mode를 처음부터 Disabled로 설정했습니다.
+기존 AllowInternetOutbound 모드를 Disabled로 되돌리는 변경은 지원되지 않습니다.
+Compute는 팀 전용 subnet과 public IP 없는 노드를 사용합니다.
+Public IP 없는 AML Compute를 만들려면 Workspace Private Endpoint가 먼저 필요합니다.
+Workspace의 publicNetworkAccess는 Enabled이므로 발표 PC의 Studio 진입은 유지됩니다.
+Registry backing Blob의 public 접근은 열지 않았으므로,
+발표 PC에서 그 Blob을 직접 다운로드하려면 별도 private 연결이 필요합니다.
+Blob Private DNS 링크에만 `NxDomainRedirect`를 적용했습니다.
+자기 팀·Registry의 기존 DNS 레코드는 private IP를 사용하고,
+레코드가 없는 상대 팀 Blob은 public DNS로 해석해 실제 RBAC 거부를 검사합니다.
+기본 Private DNS만 사용할 때 발생한 상대 팀 NXDOMAIN을 권한 차단 성공으로 집계하지 않았습니다.
+다른 DNS 영역은 Default이며 VNet peering·상대 팀 데이터 권한은 추가하지 않았습니다.
+설정 근거는 [Azure Private DNS fallback 공식 문서](https://learn.microsoft.com/en-us/azure/dns/private-dns-fallback)입니다.
+기존 검증 Workspace의 Managed Network와 Endpoint에는 변경이 없습니다.
+모델·환경 등록은 로컬 PC에서 Registry Storage에 직접 업로드하는 방식 대신
+지원되는 Workspace-to-Registry 공유 API로 완료했습니다.
+검증 Component는 별도 코드 업로드가 필요 없는 인라인 명령으로 등록했습니다.
+
+팀 Compute identity에는 자기 Storage의 Blob 역할과 Registry Reader만 부여하는 방식입니다.
+구독 Owner인 발표자의 모든 팀 조회는 팀 사용자 격리의 증거가 아닙니다.
+실제 Entra 팀 사용자·그룹, 10개 팀 전체, Slurm 연동과 운영 보안 인증은 검증 범위가 아닙니다.
+
+### 비용 구분과 현재 조회 결과
+
+Cost Management의 Cost analysis에서 Resource group으로 그룹화합니다.
+팀 전용 리소스 비용은 세 팀 RG로, Registry backing Storage·ACR 비용은
+별도의 `azureml-rg-mlr-ktmlops-shared_...` 관리형 RG로 구분합니다.
+후자는 공통 비용이며 팀에 자동 배분되지 않습니다.
+
+2026-10-28 00:43 UTC의 MonthToDate ActualCost 조회에는 기존 `rg-kt-mlops`의
+USD 5.59546797727373만 반환되었습니다.
+신규 팀·Registry 관리형 RG의 청구 행 부재는 비용 0의 증거가 아닙니다.
+신규 사용량이 청구 데이터에 반영된 이후 금액을 다시 확인해야 합니다.
+`team`과 `costCenter` 태그는 보조 분류이며 권한 경계나 예산 강제 제한이 아닙니다.
+max=1도 동시 VM 수 상한일 뿐 금액 한도가 아니며 별도 Budget은 설정하지 않았습니다.
+
+### 기존 환경 보존과 정리 범위
+
+`mlw-ktmlops-secure`에는 완료된 학습·MLflow·HF 서빙 이력이 있으므로 유지합니다.
+초기 `mlw-ktmlops`는 실패 Job 네 개와 실패한 `blue` 배포만 확인했습니다.
+두 Workspace가 기존 Storage·ACR·Key Vault·Insights를 공유하므로,
+초기 Workspace 정리 시에도 이 종속 리소스를 함께 삭제하면 안 됩니다.
+초기 Endpoint `kt-hf-cpu`와 Compute `cpu-demo`, Workspace `mlw-ktmlops`는
+삭제 완료했습니다. Storage·ACR·Key Vault 등 공유 종속 리소스는 보존했습니다.
+삭제 후 `mlw-ktmlops-secure`의 종속 리소스 참조가 동일함을 확인했고,
+2026-10-27 23:55 UTC에 기존 교육 환경을 다시 검증했습니다.
+Data·Model v1/v2, 완료된 두 학습 Job과 외부 MLflow run을 확인했으며,
+HF 추론은 정상 응답과 billing/network/cancellation 순서를 유지했습니다.
+무인증 호출은 401, 잘못된 입력은 424로 거부되었습니다.
 
 ## 전체 MLOps 파이프라인 검토 결론
 
@@ -11,7 +130,8 @@ HF CPU Endpoint 생성·추론은 완료 이력을 확인했습니다.
 다만 동일한 학습 모델을 등록한 뒤 서빙하는 단일 연속 파이프라인이나
 운영용 MLOps 전체 자동화가 완료된 것은 아닙니다.
 
-이번 검토는 코드·실행 로그·저장된 검증 기록, 현재 Azure 자산·Job 상태 조회,
+이 절은 다중 팀 확장 이전의 교육 MLOps 검토 결과입니다.
+검토는 코드·실행 로그·저장된 검증 기록, 당시 Azure 자산·Job 상태 조회,
 실제 Endpoint 호출을 대상으로 했습니다.
 Endpoint는 `verify`와 [추가 호출 테스트](#추가-호출-테스트)로 호출했으며
 가장 최근 `verify`는 2026-10-27 09:49 UTC에 실행했습니다.
@@ -100,10 +220,10 @@ Studio와 Endpoint ingress도 public이며 Key Vault의 실제 public access는 
 ACR까지 Private Endpoint로 연결되었다는 이전 설명은 실제 상태에 맞춰 정정했습니다.
 `AllowInternetOutbound`는 일반 인터넷 egress를 허용하므로 완전한 private-only 환경은 아닙니다.
 
-[Bicep 템플릿](../infra/main.bicep)은 Key Vault public access를 Enabled로 선언하지만
-실제 배포 상태는 Disabled입니다. 템플릿과 실제 유효 설정을 동일하다고 가정하지 말고
-재배포 전에 정책 적용 결과와 목표 설정을 확인해야 합니다.
-이번 검토에서는 인프라 코드를 수정하거나 재배포하지 않았습니다.
+이전 검토 당시에는 [Bicep 템플릿](../infra/main.bicep)의 Key Vault public access가
+Enabled이고 실제 배포 상태는 Disabled인 차이가 있었습니다.
+후속 다중 팀 구성에서 템플릿도 Disabled로 정렬했습니다.
+재배포 전에는 코드뿐 아니라 정책 적용 결과와 실제 유효 설정도 확인해야 합니다.
 
 ## 클라우드 E2E 및 Endpoint 호출 검증
 

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 500" role="img" aria-labelledby="title desc">
+  <title id="title">보안, 관측, 비용의 서로 다른 운영 경계</title>
+  <desc id="desc">접근은 Entra와 RBAC, Storage NSP 및 private 의존 경로로 관리합니다. 요청 지표와 로그는 관측 근거이며 SLO나 모델 품질 검증은 아닙니다. 팀 RG 직접 비용과 Registry 공통 비용을 구분하고 min0이 전체 비용0을 뜻하지 않음을 설명합니다.</desc>
+  <defs><style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:23px;font-weight:700}.small{font-size:17px;fill:#405b72}</style></defs>
+  <rect width="1080" height="500" rx="16" fill="#fff"/>
+  <text x="36" y="46" class="title">학습 성공 이후, 세 가지 운영 질문을 따로 확인하기</text>
+  <g class="node"><rect x="36" y="106" width="312" height="292" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="60" y="149" class="heading">01 / 누가 접근하나?</text><text x="60" y="198">Entra ID · RBAC</text><text x="60" y="236">Storage NSP Enforced</text><text x="60" y="274">Private 의존 경로</text><text x="60" y="322" class="small">기존: Managed Network</text><text x="60" y="354" class="small">새 팀: 전용 VNet</text><text x="60" y="382" class="small">public 진입점 ≠ 익명 허용</text></g>
+  <g class="node"><rect x="384" y="106" width="312" height="292" rx="12" fill="#edf8f3" stroke="#89b9a2"/><text x="408" y="149" class="heading">02 / 무엇을 관측하나?</text><text x="408" y="198">Endpoint 요청 지표</text><text x="408" y="236">Application Insights</text><text x="408" y="274">Log Analytics</text><text x="408" y="322" class="small">호출 흔적·로그 확인</text><text x="408" y="354" class="small">SLO·경보·Drift 검증 아님</text><text x="408" y="382" class="small">401은 컨테이너 이전 거부</text></g>
+  <g class="node"><rect x="732" y="106" width="312" height="292" rx="12" fill="#fff4e8" stroke="#d2af80"/><text x="756" y="149" class="heading">03 / 어디에 과금되나?</text><text x="756" y="198">팀 RG별 직접 비용</text><text x="756" y="236">Registry RG 공통 비용</text><text x="756" y="274">상시 HF 서빙 CPU 1대</text><text x="756" y="322" class="small">Compute min 0 ≠ 비용 0</text><text x="756" y="354" class="small">NAT·PE·ACR 기본 비용</text><text x="756" y="382" class="small">태그 ≠ 예산 강제 제한</text></g>
+  <text x="36" y="444">보안·관측·비용은 각자 다른 검증 근거가 필요합니다.</text>
+  <text x="36" y="478" class="small">신규 청구 행 부재는 비용 0의 증거가 아닙니다. 팀 사용자 그룹 격리·운영 HA는 범위 밖입니다.</text>
+</svg>

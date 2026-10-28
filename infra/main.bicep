@@ -8,6 +8,19 @@ param location string = resourceGroup().location
 @maxLength(9)
 param prefix string = 'ktmlops'
 
+@description('Workspace name, independently configurable for team deployments.')
+param workspaceName string = 'mlw-${prefix}-secure'
+
+@description('Team or shared cost allocation label.')
+param team string = 'shared'
+
+@description('Cost center label for resource-level cost analysis.')
+param costCenter string = 'kt-mlops-shared'
+
+@description('Managed network mode. Disabled is used only with a separately provisioned team VNet.')
+@allowed(['Disabled', 'AllowInternetOutbound'])
+param managedNetworkMode string = 'AllowInternetOutbound'
+
 @description('Entra object ID of the user uploading demo assets.')
 param operatorPrincipalId string
 
@@ -19,6 +32,8 @@ var tags = {
   project: 'azure-llm-mlops'
   purpose: 'training-demo'
   dataClassification: 'synthetic'
+  team: team
+  costCenter: costCenter
 }
 
 resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' = {
@@ -87,7 +102,7 @@ resource vault 'Microsoft.KeyVault/vaults@2025-05-01' = {
     enableSoftDelete: true
     enablePurgeProtection: true
     softDeleteRetentionInDays: 7
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: 'Disabled'
     networkAcls: { defaultAction: 'Allow', bypass: 'AzureServices' }
   }
 }
@@ -129,7 +144,7 @@ resource insights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 resource workspace 'Microsoft.MachineLearningServices/workspaces@2025-06-01' = {
-  name: 'mlw-${prefix}-secure'
+  name: workspaceName
   location: location
   tags: tags
   kind: 'Default'
@@ -143,7 +158,7 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2025-06-01' = {
     containerRegistry: registry.id
     publicNetworkAccess: 'Enabled'
     systemDatastoresAuthMode: 'Identity'
-    managedNetwork: { isolationMode: 'AllowInternetOutbound' }
+    managedNetwork: { isolationMode: managedNetworkMode }
     imageBuildCompute: 'cpu-secure'
   }
 }
@@ -217,3 +232,9 @@ output storageId string = storage.id
 
 @description('Container registry resource ID for endpoint image pulls.')
 output registryId string = registry.id
+
+@description('Key Vault resource ID for private dependency connectivity.')
+output vaultId string = vault.id
+
+@description('Workspace resource ID for its private compute access endpoint.')
+output workspaceId string = workspace.id

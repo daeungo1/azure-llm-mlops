@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 470" role="img" aria-labelledby="title desc">
+  <title id="title">DevOps 위에 데이터·실험·모델 관리를 더하는 MLOps</title>
+  <desc id="desc">코드, 테스트, 배포, 운영이라는 DevOps 기반에 데이터 버전, 실험 기록, 환경과 모델 패키지 관리를 추가합니다. 자동 재학습이나 승인·롤백은 이 데모에 구현하지 않았습니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
+    <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}.box{fill:#fff;stroke:#8daec6;stroke-width:1.5}</style>
+  </defs>
+  <rect width="1080" height="470" rx="16" fill="#fff"/>
+  <text x="36" y="46" class="title">MLOps = DevOps 기반 + ML 자산과 실행 근거</text>
+  <text x="36" y="83" class="small">공통 기반 / 애플리케이션을 반복 가능하게 만들기</text>
+  <g class="node"><rect x="36" y="105" width="222" height="110" rx="12" class="box"/><text x="56" y="144" class="heading">코드 버전</text><text x="56" y="180">Git · 변경 이력</text></g>
+  <g class="node"><rect x="298" y="105" width="222" height="110" rx="12" class="box"/><text x="318" y="144" class="heading">검증</text><text x="318" y="180">테스트 · 빌드</text></g>
+  <g class="node"><rect x="560" y="105" width="222" height="110" rx="12" class="box"/><text x="580" y="144" class="heading">배포</text><text x="580" y="180">실행 단위 · 설정</text></g>
+  <g class="node"><rect x="822" y="105" width="222" height="110" rx="12" class="box"/><text x="842" y="144" class="heading">운영</text><text x="842" y="180">요청 · 상태 · 비용</text></g>
+  <path class="edge" d="M258 160H298M520 160H560M782 160H822"/>
+  <text x="36" y="264" class="small">ML에서 추가할 근거 / 무엇으로 만들었고, 왜 이 모델인가?</text>
+  <g class="node"><rect x="36" y="286" width="222" height="110" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="56" y="325" class="heading">Data 버전</text><text x="56" y="361">입력 · 스키마 · 분포</text></g>
+  <g class="node"><rect x="298" y="286" width="222" height="110" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="318" y="325" class="heading">Experiment</text><text x="318" y="361">파라미터 · 평가 지표</text></g>
+  <g class="node"><rect x="560" y="286" width="222" height="110" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="580" y="325" class="heading">Environment</text><text x="580" y="361">의존성 · 이미지</text></g>
+  <g class="node"><rect x="822" y="286" width="222" height="110" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="842" y="325" class="heading">Model 버전</text><text x="842" y="361">패키지 · 출처 · 후보</text></g>
+  <text x="36" y="441" class="small">이 데모: 자산·추적·학습·별도 HF 서빙 / 미구현: 자동 재학습·품질 승인·승격·롤백</text>
+</svg>

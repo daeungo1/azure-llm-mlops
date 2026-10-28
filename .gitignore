@@ -17,3 +17,5 @@ data/generated/
 outputs/
 *.pptx
 *.html
+.site-content/
+site/

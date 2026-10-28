@@ -1,0 +1,174 @@
+"""Generate the public session pages from an explicit source allowlist."""
+
+import json
+import posixpath
+import re
+import shutil
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from urllib.parse import quote, urlsplit
+
+
+@dataclass(frozen=True)
+class Chapter:
+    slug: str
+    diagram: str
+    checkpoint: str
+
+
+CHAPTERS = (
+    Chapter("01-overview", "mlops-overview.svg", "학습 경로와 별도의 HF 서빙 경로를 구분합니다."),
+    Chapter(
+        "02-architecture", "azure-architecture.svg", "Workspace 연결 리소스와 팀별 RG를 엽니다."
+    ),
+    Chapter(
+        "03-data", "data-asset-versions.svg", "Data v1/v2와 Datastore의 인증·미리보기를 확인합니다."
+    ),
+    Chapter(
+        "04-pipelines", "mlops-pipeline.svg", "Completed Pipeline의 Prepare → Train을 따라갑니다."
+    ),
+    Chapter("05-mlflow", "mlflow-experiment-comparison.svg", "같은 holdout의 두 run을 비교합니다."),
+    Chapter("06-models", "model-package-lineage.svg", "Model 버전과 원본 Job·패키지를 연결합니다."),
+    Chapter(
+        "07-environments", "environment-acr-build.svg", "Environment의 build log와 ACR을 엽니다."
+    ),
+    Chapter(
+        "08-serving", "endpoint-request-flow.svg", "Test·Consume·Logs에서 응답과 인증을 확인합니다."
+    ),
+    Chapter(
+        "09-external",
+        "external-training-tracking.svg",
+        "외부 run의 실행 출처·데이터 버전을 봅니다.",
+    ),
+    Chapter(
+        "10-operations", "operating-boundaries.svg", "보안·관측·비용을 각각의 근거로 확인합니다."
+    ),
+    Chapter(
+        "11-workflow", "demo-workflow.svg", "검증 CI와 수동 클라우드 실행의 경계를 설명합니다."
+    ),
+)
+SVG_FILES = tuple(chapter.diagram for chapter in CHAPTERS) + ("multi-team-architecture.svg",)
+PUBLIC_PAGES = {
+    "docs/session-home.md": "index.md",
+    "docs/session-guide.md": "session-guide.md",
+    "docs/deployment-status.md": "deployment-status.md",
+}
+PUBLIC_FILES = {
+    **PUBLIC_PAGES,
+    **{f"docs/images/{name}": f"images/{name}" for name in SVG_FILES},
+    "docs/stylesheets/session.css": "stylesheets/session.css",
+}
+LINK = re.compile(r"(!?\[[^\]\n]*\]\()([^\s)]+)(\))")
+HEADING = re.compile(r"^## (\d+)\. (.+)$", re.MULTILINE)
+GITHUB = "https://github.com/daeungo1/azure-llm-mlops/blob/main/"
+
+
+def split_chapters(text: str) -> dict[int, tuple[str, str]]:
+    headings = list(HEADING.finditer(text))
+    if [int(match[1]) for match in headings[:11]] != list(range(1, 12)):
+        raise ValueError("README must contain ordered sections 1 through 11")
+    chapters = {}
+    for index, match in enumerate(headings[:11]):
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
+        body = text[match.end() : end].strip()
+        if f"docs/images/{CHAPTERS[index].diagram}" not in body:
+            raise ValueError(f"Missing approved diagram in section {index + 1}")
+        chapters[index + 1] = (f"{match[1]}. {match[2]}", body)
+    return chapters
+
+
+def public_markdown(source: Path, text: str) -> str:
+    def replace_link(match: re.Match[str]) -> str:
+        href = match[2]
+        parsed = urlsplit(href)
+        if parsed.scheme or parsed.netloc or href.startswith("#"):
+            return match[0]
+        target = posixpath.normpath(str(PurePosixPath(source.as_posix()).parent / parsed.path))
+        if target in PUBLIC_FILES:
+            destination = PUBLIC_FILES[target]
+        elif source.as_posix() == "docs/session-home.md" and parsed.path in {
+            f"{chapter.slug}.md" for chapter in CHAPTERS
+        }:
+            destination = parsed.path
+        elif target == "README.md":
+            destination = GITHUB + "README.md"
+        elif PurePosixPath(target).parts[0] in {"demo", "infra", "environments", "tests"}:
+            destination = GITHUB + quote(target, safe="/")
+        else:
+            raise ValueError(f"Unapproved local link in {source}: {href}")
+        if parsed.query:
+            destination += "?" + parsed.query
+        if parsed.fragment:
+            destination += "#" + parsed.fragment
+        return match[1] + destination + match[3]
+
+    text = LINK.sub(replace_link, text)
+    return re.sub(
+        r"^> \[!(WARNING|IMPORTANT|NOTE|TIP|CAUTION)\]\n((?:>[^\n]*(?:\n|$))+)",
+        lambda match: (
+            "!!! "
+            + {"WARNING": "warning", "CAUTION": "danger", "TIP": "tip"}.get(match[1], "note")
+            + "\n"
+            + "".join(
+                "    " + line.removeprefix(">").removeprefix(" ") + "\n"
+                for line in match[2].splitlines()
+            )
+        ),
+        text,
+        flags=re.MULTILINE,
+    )
+
+
+def build_source(root: Path) -> Path:
+    root = root.resolve()
+    output = root / ".site-content"
+    if output.is_symlink():
+        raise ValueError("Unexpected symlink for generated site directory")
+    expected = set(PUBLIC_FILES.values()) | {f"{chapter.slug}.md" for chapter in CHAPTERS}
+    if output.exists():
+        for path in output.rglob("*"):
+            if path.is_symlink() or (
+                path.is_file() and path.relative_to(output).as_posix() not in expected
+            ):
+                raise ValueError(
+                    f"Unexpected generated-site entry; review before publishing: {path}"
+                )
+    chapters = split_chapters((root / "README.md").read_text(encoding="utf-8"))
+    for source in PUBLIC_FILES:
+        if not (root / source).is_file():
+            raise FileNotFoundError(f"Missing approved site source: {source}")
+    for source, target in PUBLIC_FILES.items():
+        destination = output / target
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if source.endswith(".md"):
+            text = public_markdown(Path(source), (root / source).read_text(encoding="utf-8"))
+            if target == "index.md":
+                cards = "\n\n".join(
+                    f"- **[{title}]({chapter.slug}.md)**\n\n    {chapter.checkpoint}"
+                    for chapter, (title, _) in zip(CHAPTERS, chapters.values(), strict=True)
+                )
+                text = text.replace("<!-- SESSION_CHAPTERS -->", cards)
+            destination.write_text(text, encoding="utf-8")
+        else:
+            shutil.copyfile(root / source, destination)
+    for number, chapter in enumerate(CHAPTERS, 1):
+        title, body = chapters[number]
+        body = re.sub(r"^(#{3,6}) ", lambda match: match[1][1:] + " ", body, flags=re.MULTILINE)
+        text = (
+            f"---\ntitle: {json.dumps(title, ensure_ascii=False)}\n"
+            f"description: {json.dumps(chapter.checkpoint, ensure_ascii=False)}\n---\n\n"
+        )
+        text += public_markdown(Path("README.md"), body)
+        text += f'\n\n!!! tip "Studio 체크포인트"\n\n    {chapter.checkpoint}\n'
+        (output / f"{chapter.slug}.md").write_text(text, encoding="utf-8")
+    return output
+
+
+def main() -> int:
+    destination = build_source(Path(__file__).resolve().parents[1])
+    print(f"Generated 11 public chapters and allowlisted assets: {destination}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

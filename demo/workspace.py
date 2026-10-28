@@ -38,7 +38,7 @@ def save_state(**updates) -> dict:
 def grant_role(scope: str, principal_id: str, role_id: str, subscription_id: str) -> None:
     assignment = uuid5(NAMESPACE_URL, f"{scope}:{principal_id}:{role_id}")
     token = (
-        AzureCliCredential(process_timeout=120)
+        AzureCliCredential(process_timeout=600)
         .get_token("https://management.azure.com/.default")
         .token
     )

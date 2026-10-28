@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 480" role="img" aria-labelledby="title desc">
+  <title id="title">Environment 정의에서 AML 이미지 빌드, ACR 및 실행까지</title>
+  <desc id="desc">MCR 기본 이미지와 Conda pip 의존성으로 Azure ML이 custom 이미지를 빌드하고 ACR에 저장합니다. 학습과 HF 서빙은 각각의 버전이 있는 환경 이미지를 사용합니다. ACR Tasks나 GitHub CI 빌드가 아닙니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
+    <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1080" height="480" rx="16" fill="#fff"/>
+  <text x="36" y="46" class="title">Environment를 정의하고, 실제 실행 이미지를 남기기</text>
+  <g class="node"><rect x="36" y="104" width="280" height="146" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="56" y="144" class="heading">환경 정의</text><text x="56" y="184">MCR base image</text><text x="56" y="220">Conda / pip 버전</text></g>
+  <g class="node"><rect x="400" y="104" width="280" height="146" rx="12" fill="#fff" stroke="#8daec6"/><text x="420" y="144" class="heading">AML 이미지 빌드</text><text x="420" y="184">cpu-secure</text><text x="420" y="220">의존성 설치 · build log</text></g>
+  <g class="node"><rect x="764" y="104" width="280" height="146" rx="12" fill="#edf8f3" stroke="#89b9a2"/><text x="784" y="144" class="heading">ACR</text><text x="784" y="184">Custom image</text><text x="784" y="220">tag · immutable digest</text></g>
+  <path class="edge" d="M316 177H400M680 177H764M904 250V282H288V315M904 282H792V315"/>
+  <g class="node"><rect x="36" y="315" width="480" height="94" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="56" y="351" class="heading">학습 / kt-sklearn-mlflow:2</text><text x="56" y="385">버전이 고정된 환경에서 학습 Job 실행</text></g>
+  <g class="node"><rect x="564" y="315" width="480" height="94" rx="12" fill="#f4f2fb" stroke="#aea2ce"/><text x="584" y="351" class="heading">서빙 / kt-hf-cpu:1</text><text x="584" y="385">모델 + score code + 환경으로 배포</text></g>
+  <text x="36" y="453" class="small">빌드 주체는 AML입니다. ACR Tasks·GitHub CI 빌드 또는 기본 이미지만 사용한 구성이 아닙니다.</text>
+</svg>

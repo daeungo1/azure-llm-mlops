@@ -1,7 +1,7 @@
 ---
 title: AML 기반 MLOps 및 모델 서빙 진행 가이드
 description: 강사용 개념 정리, Studio 탭별 시연, 외부 MLflow 추적과 CPU Endpoint 실습
-ms.date: 2026-10-27
+ms.date: 2026-10-28
 ---
 
 ## 권장 진행 순서
@@ -31,6 +31,67 @@ MLOps는 여기에 학습 데이터의 버전과 스키마, 실험의 매개변�
 모델 정확도는 애플리케이션 테스트 통과만으로 보장되지 않습니다.
 동일한 holdout, 데이터 누수 방지, 적절한 품질 기준과 배포 승인이 필요합니다.
 데이터 변화는 재학습을 검토하는 신호이지 자동 배포 허가가 아닙니다.
+
+## 발표자료와 공개 페이지의 정렬
+
+로컬 `kt-mlops.pptx`의 개념 → Repo → Portal 흐름과 Track · Version · Serve 요약을 따릅니다.
+공개 페이지는 원본 슬라이드나 내부 부록을 복사하지 않고, README 본문과 직접 작성한 SVG를 재사용합니다.
+슬라이드의 단일 RG 그림은 기존 검증 환경이고, 현재 팀 확장 데모는 공통 RG와 팀 RG 3개를 구분합니다.
+
+| README·페이지 | 발표자료에서 연결할 내용 |
+|---|---|
+| 1. Overview | DevOps에 Data·Experiment·Model 근거 추가 |
+| 2. 아키텍처 | Workspace 역할, 연결 리소스, 후속 팀 격리 확장 |
+| 3. Data | Datastore 연결과 Data asset 버전 |
+| 4. Jobs | Pipeline graph와 실제 실행 기록 |
+| 5. MLflow | 같은 holdout의 비교와 작은 지표 차이 해석 |
+| 6. Models | 패키지·signature·원본 Job·등록 버전 |
+| 7. Environments | 환경 정의와 실제 이미지 빌드·ACR |
+| 8. Serving | Endpoint/Deployment 구분, 영어 MiniLM, 인증·오류 |
+| 9. 외부 학습 | 연산 위치와 추적·모델 관리 위치 분리 |
+| 10. 운영 조건 | 보안·모니터링·비용 및 미검증 범위 |
+| 11. Workflow | 개념 → Repo → Studio 시연, 다음 운영 과제 |
+
+### 사이트 갱신과 로컬 미리보기
+
+README의 1~11번과 허용된 SVG를 수정하면 GitHub Actions가 공개 페이지를 다시 생성합니다.
+ML 런타임과 분리된 문서 의존성으로 빌드하며, Azure 리소스를 배포하거나 학습·추론하지 않습니다.
+
+```powershell
+python scripts\build_session_site.py
+uv run --no-project --python 3.11 --with-requirements requirements-docs.txt mkdocs build --strict
+uv run --no-project --python 3.11 --with-requirements requirements-docs.txt mkdocs serve
+```
+
+`.site-content`와 `site`는 생성물입니다.
+생성 경로에서 예상하지 못한 파일을 발견하면 게시를 중단하므로, 내용을 검토한 뒤 해당 파일만 제거합니다.
+`docs` 전체나 저장소 루트를 복사하지 않으며 PPTX·내부 케이스·로컬 실행 증적은 게시하지 않습니다.
+
+## 팀별 격리와 공용 자산 시연
+
+[다중 팀 배포 상태](deployment-status.md#다중-팀-rg와-공용-registry)의
+검증 상태를 먼저 확인합니다. 기본 인프라 배포와 실제 소비 Job 성공은 구분합니다.
+
+1. Azure Portal에서 `rg-kt-mlops-team-1/2/3`을 각각 열어
+   Workspace뿐 아니라 Storage·ACR·Key Vault·로그 리소스도 전용임을 보여줍니다.
+2. 공통 `mlr-ktmlops-shared`에서 Model·Environment·Component의
+   동일 이름·버전을 공유하는 구조를 설명합니다. 등록 상태는 배포 증적과 대조합니다.
+3. 각 팀 Workspace의 `kt-shared-registry` 실험에서 완료된
+   `plum_van_kv28bglrqg` / `gifted_deer_66y29xx9f5` / `strong_basin_qrgr4ykljk`를 엽니다.
+   동일 Model v1·Environment v1·Component v3의 Registry URI를 확인합니다.
+   `consume` 노드의 Outputs + logs에서 `user_logs/std_log.txt`를 열어
+   예측 `[1, 0, 1]`, 자기 Blob 200과 상대 팀 Blob 403을 보여줍니다.
+   상대 팀 오류는 `AuthorizationPermissionMismatch`이며 검사 방향은 1→2, 2→3, 3→1입니다.
+4. Cost Management에서 Resource group별 비용을 비교합니다.
+   신규 RG의 행이 없으면 청구 반영 지연이라고 설명하고 비용 0이라고 단정하지 않습니다.
+5. Registry가 만든 관리형 RG의 Storage·ACR 비용은 공통 비용으로 별도 확인합니다.
+   태그와 min/max Compute 설정은 금액 한도나 사용자 접근 제어가 아닙니다.
+
+발표자 계정은 구독 Owner이므로 모든 팀을 조회할 수 있습니다.
+사용자 격리는 별도의 팀 그룹·RBAC 설계가 필요하며,
+Compute managed identity 검증을 실제 팀 사용자 10개의 격리 검증으로 확대 해석하지 않습니다.
+기존 `mlw-ktmlops-secure`는 학습·서빙 이력용으로 계속 사용합니다.
+실패한 초기 `mlw-ktmlops`는 Endpoint·Compute와 함께 삭제했으며 공유 의존 리소스는 보존했습니다.
 
 ## 세션 전 점검
 

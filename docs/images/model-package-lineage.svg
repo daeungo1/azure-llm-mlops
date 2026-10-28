@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 470" role="img" aria-labelledby="title desc">
+  <title id="title">학습 Job에서 MLflow 패키지와 Model 버전으로 이어지는 출처</title>
+  <desc id="desc">완료된 학습 Job이 모델과 MLflow 메타데이터를 출력하고 SDK가 고객 이탈 모델 v1과 v2를 등록합니다. 별도 HF custom model은 사전학습 파일에서 등록되며 churn 모델의 후속 버전이 아닙니다.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
+    <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1080" height="470" rx="16" fill="#fff"/>
+  <text x="36" y="46" class="title">모델은 파일 하나가 아니라 출처가 있는 실행 패키지</text>
+  <g class="node"><rect x="36" y="110" width="270" height="214" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="56" y="151" class="heading">완료된 학습 Job</text><text x="56" y="193">Data · 코드 · 환경</text><text x="56" y="231">파라미터 · 평가 근거</text><text x="56" y="287" class="small">Job의 Inputs / Outputs 확인</text></g>
+  <g class="node"><rect x="394" y="110" width="292" height="214" rx="12" fill="#fff" stroke="#8daec6"/><text x="414" y="151" class="heading">MLflow package</text><text x="414" y="191">모델 파일 · MLmodel</text><text x="414" y="229">환경 정의 · signature</text><text x="414" y="267">input example</text><text x="414" y="302" class="small">파일 + 실행 계약</text></g>
+  <g class="node"><rect x="774" y="110" width="270" height="214" rx="12" fill="#edf8f3" stroke="#89b9a2"/><text x="794" y="151" class="heading">Model versions</text><text x="794" y="193">v1 / Logistic</text><text x="794" y="231">v2 / Random Forest</text><text x="794" y="287" class="small">완료 후 SDK로 등록</text></g>
+  <path class="edge" d="M306 217H394M686 217H774"/>
+  <g class="node"><rect x="36" y="365" width="1008" height="72" rx="10" fill="#f4f2fb" stroke="#aea2ce"/><text x="56" y="395">별도 HF custom model / hf-minilm-ticket-router:1</text><text x="56" y="422" class="small">사전학습 파일을 등록한 독립 경로이며 churn 학습 모델의 다음 버전이 아닙니다.</text></g>
+</svg>

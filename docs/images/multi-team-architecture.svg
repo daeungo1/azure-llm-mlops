@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1050" viewBox="0 0 1000 1050" style="max-width:100%;height:auto" role="img" aria-labelledby="title desc">
+  <title id="title">팀별 RG와 공용 Azure ML Registry</title>
+  <desc id="desc">세 팀은 각각 별도의 리소스 그룹, Workspace, Storage, Key Vault, ACR, 로그, VNet, NAT 및 private CPU Compute를 사용합니다. Registry Blob은 팀별 Private Endpoint로 연결하며 관리형 deny와 조직 정책을 유지합니다. 중앙 Azure ML Registry의 동일 모델, 환경 및 Component 버전을 각 팀 Job이 참조합니다. 팀 직접 비용은 RG별로 구분하며 Registry와 관리형 backing RG 비용은 공통 비용입니다. 검증된 기존 secure Workspace는 별도의 교육 이력과 HF 서빙용으로 유지합니다.</desc>
+  <defs>
+    <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M1 1 9 5 1 9Z" fill="#32658b"/></marker>
+    <style>
+      text{font-family:"Segoe UI","Malgun Gothic","Noto Sans KR",sans-serif;font-size:18px;fill:#17324d}
+      .title{font-size:28px;font-weight:700}.heading{font-size:20px;font-weight:700}.small{font-size:16px;fill:#405b72}
+      .box{fill:#fff;stroke:#8daec6;stroke-width:1.5}.edge{fill:none;stroke:#32658b;stroke-width:2.4;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1000" height="1050" rx="16" fill="#fff"/>
+  <text x="32" y="46" class="title">팀별 격리와 공용 ML 자산 공유</text>
+  <text x="32" y="78" class="small">Korea Central · 전용 리소스는 팀 RG 비용 · Registry와 backing 리소스는 공통 비용</text>
+  <g class="node">
+    <rect x="32" y="110" width="936" height="176" rx="14" fill="#edf3ff" stroke="#6888bd"/>
+    <text x="52" y="146" class="heading">공통 RG: rg-kt-mlops / Azure ML Registry</text>
+    <text x="52" y="178">mlr-ktmlops-shared</text>
+    <text x="52" y="210">Model: telco-shared:1 · Environment: kt-shared-cpu:1</text>
+    <text x="52" y="242">Component: verify_shared_model:3</text>
+    <text x="52" y="270" class="small">AML Registry는 ML 자산 카탈로그 · ACR은 컨테이너 이미지 저장소</text>
+  </g>
+  <path d="M500 286V318H180V368" class="edge"/>
+  <path d="M500 286V368" class="edge"/>
+  <path d="M500 286V318H820V368" class="edge"/>
+  <text x="32" y="308" class="small">같은 Registry URI와 버전 참조 · 팀 간 Storage 권한 공유 아님</text>
+  <g class="node">
+    <rect x="32" y="368" width="296" height="348" rx="12" fill="#f1f8f6" stroke="#087e76"/>
+    <text x="52" y="402" class="heading">Team 1 / 전용 RG</text>
+    <text x="52" y="436" class="small">rg-kt-mlops-team-1</text>
+    <text x="52" y="470" class="small">mlw-ktmlops-secure-1</text>
+    <text x="52" y="508">Storage · Key Vault</text>
+    <text x="52" y="540">ACR · Insights · Logs</text>
+    <text x="52" y="572" class="small">NSP · VNet · NAT · Private Link</text>
+    <text x="52" y="604">CPU min 0 / max 1</text>
+    <text x="52" y="646" class="small">compute identity → 자기 데이터</text>
+    <text x="52" y="680" class="small">costCenter: kt-mlops-team-1</text>
+  </g>
+  <g class="node">
+    <rect x="352" y="368" width="296" height="348" rx="12" fill="#f1f8f6" stroke="#087e76"/>
+    <text x="372" y="402" class="heading">Team 2 / 전용 RG</text>
+    <text x="372" y="436" class="small">rg-kt-mlops-team-2</text>
+    <text x="372" y="470" class="small">mlw-ktmlops-secure-2</text>
+    <text x="372" y="508">Storage · Key Vault</text>
+    <text x="372" y="540">ACR · Insights · Logs</text>
+    <text x="372" y="572" class="small">NSP · VNet · NAT · Private Link</text>
+    <text x="372" y="604">CPU min 0 / max 1</text>
+    <text x="372" y="646" class="small">compute identity → 자기 데이터</text>
+    <text x="372" y="680" class="small">costCenter: kt-mlops-team-2</text>
+  </g>
+  <g class="node">
+    <rect x="672" y="368" width="296" height="348" rx="12" fill="#f1f8f6" stroke="#087e76"/>
+    <text x="692" y="402" class="heading">Team 3 / 전용 RG</text>
+    <text x="692" y="436" class="small">rg-kt-mlops-team-3</text>
+    <text x="692" y="470" class="small">mlw-ktmlops-secure-3</text>
+    <text x="692" y="508">Storage · Key Vault</text>
+    <text x="692" y="540">ACR · Insights · Logs</text>
+    <text x="692" y="572" class="small">NSP · VNet · NAT · Private Link</text>
+    <text x="692" y="604">CPU min 0 / max 1</text>
+    <text x="692" y="646" class="small">compute identity → 자기 데이터</text>
+    <text x="692" y="680" class="small">costCenter: kt-mlops-team-3</text>
+  </g>
+  <g class="node">
+    <rect x="32" y="748" width="936" height="116" rx="12" class="box"/>
+    <text x="52" y="782" class="heading">비용 확인: Cost Management → Cost analysis → Resource group별 분류</text>
+    <text x="52" y="814">팀별 RG 비용과 공통 Registry backing RG 비용을 분리해서 확인</text>
+    <text x="52" y="846" class="small">청구 반영 지연 가능 · 태그는 권한 경계가 아님 · max 1은 동시 VM 상한이지 금액 한도 아님</text>
+  </g>
+  <g class="node">
+    <rect x="32" y="896" width="936" height="122" rx="12" fill="#f1f5fa" stroke="#b8c9da"/>
+    <text x="52" y="930" class="heading">기존 검증 환경 유지: mlw-ktmlops-secure</text>
+    <text x="52" y="962">Data v1/v2 · 학습 이력 · MLflow 모델 · HF CPU Endpoint</text>
+    <text x="52" y="994" class="small">세 팀의 비용·자산 공유 테스트와 구분 · 완료 이력을 삭제하거나 Workspace 이름만 변경하지 않음</text>
+  </g>
+</svg>
