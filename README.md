@@ -290,7 +290,7 @@ Storage Networking·NSP·ACR·Application Insights·Log Analytics를 연결해 �
 2026-10-28 랩탑 점검에서 변경된 공인 IP의 `/32`를 네 개 NSP에 추가하고,
 운영자에게 데모 File share 범위의 읽기 전용 권한을 부여했습니다.
 Blob·File 조회, MLflow·Registry 자산 조회, ACR·Logs와 인증된 추론을 확인했습니다.
-로그인 후 Portal·Studio 화면 확인은 별도이며,
+2026-10-29에는 운영자가 로컬 브라우저에서 리소스 화면 접근도 확인했습니다.
 [랩탑 접근 결과와 리소스 바로가기](docs/deployment-status.md#로컬-랩탑에서의-접근-확인)에 범위를 구분했습니다.
 
 ## 11. CI와 실행 Workflow: 검증 자동화와 모델 운영 자동화 구분하기
@@ -307,8 +307,8 @@ GitHub Actions는 코드의 Ruff·pytest와 Bicep build를 검증합니다.
 현재 Azure 실행은 운영자가 수행하고, AML이 환경 이미지를 빌드해 ACR에 저장합니다.
 운영 전환 시 품질 기준·승인·승격/롤백·재학습 trigger를 추가 설계해야 합니다.
 
-SDK/API와 Endpoint 호출 검증은 완료 이력이 있지만,
-로그인 후 Studio 탭별 시각적 검증은 남아 있습니다.
+SDK/API와 Endpoint 호출을 검증했으며, 운영자의 로컬 브라우저 접근도 확인했습니다.
+Studio 전체 탭의 기능과 데이터 미리보기 렌더링을 전수 검사한 것은 아닙니다.
 AutoML, Designer의 시각적 편집, Responsible AI, Batch Endpoint와 Drift monitor는 이번 범위 밖입니다.
 
 1~11번의 SVG는 외부 이미지·폰트·스크립트 없이 표시됩니다.
@@ -455,7 +455,7 @@ AML이 관리하는 환경 이미지 빌드입니다. GitHub CI는 테스트·Bi
 AML Pipeline graph 자체는 Prepare -> Train이며,
 등록한 churn 모델의 배포 단계까지 연결된 단일 그래프가 아닙니다.
 자동 최적 모델 선택·품질 기준 승인·승격/롤백·드리프트 기반 재학습·클라우드 CD는
-구현하지 않았습니다. Studio 로그인 후 탭별 시각적 검증도 남아 있습니다.
+구현하지 않았습니다. Studio 전체 탭의 기능 전수 검사도 별도 범위입니다.
 [완료 판정과 한계](docs/deployment-status.md#전체-mlops-파이프라인-검토-결론)를 확인하세요.
 
 ### 패키지 다운로드 환경
