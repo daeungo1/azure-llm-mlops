@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1130" viewBox="0 0 1000 1130" style="max-width:100%;height:auto" role="img" aria-labelledby="title desc">
   <title id="title">KT Azure ML 데모 배포 아키텍처</title>
-  <desc id="desc">발표 PC는 Entra 인증으로 public Azure ML Workspace와 HF Endpoint를 사용하며, 허용된 공인 IP에서 Storage에 접근합니다. Managed Network의 CPU 학습과 HF 서빙은 별도 모델 경로입니다. Storage와 Key Vault는 Private Endpoint를, ACR은 인증된 public 이미지 경로를 사용합니다. Endpoint 관측은 Application Insights와 Log Analytics에 연결됩니다. 리소스 관계 개념도이며 subnet 배치도가 아닙니다.</desc>
+  <desc id="desc">운영 PC는 Entra 인증으로 public Azure ML Workspace와 HF Endpoint를 사용하며, 허용된 공인 IP에서 Storage에 접근합니다. Managed Network의 CPU 학습과 HF 서빙은 별도 모델 경로입니다. Storage와 Key Vault는 Private Endpoint를, ACR은 인증된 public 이미지 경로를 사용합니다. Endpoint 관측은 Application Insights와 Log Analytics에 연결됩니다. 리소스 관계 개념도이며 subnet 배치도가 아닙니다.</desc>
   <defs>
     <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9Z" fill="#32658b"/></marker>
     <marker id="private-arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M1 1 9 5 1 9Z" fill="#087e76"/></marker>
@@ -16,9 +16,9 @@
   <text x="32" y="46" class="title">Azure ML 배포 아키텍처</text>
   <text x="32" y="76" class="small">rg-kt-mlops · Korea Central · public ingress + Entra ID + 보호된 의존 리소스</text>
 
-  <g class="node" id="presenter">
+  <g class="node" id="operator">
     <rect x="44" y="116" width="236" height="156" rx="12" fill="#f1f5fa" stroke="#b8c9da"/>
-    <text x="64" y="150" class="heading">개발 / 발표 PC</text>
+    <text x="64" y="150" class="heading">개발 / 운영 PC</text>
     <text x="64" y="182">Studio · Azure Portal</text>
     <text x="64" y="212">CLI · SDK v2 · MLflow</text>
     <text x="64" y="246" class="small">GitHub: 코드 · 문서 · CI</text>

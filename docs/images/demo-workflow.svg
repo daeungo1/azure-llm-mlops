@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1248" viewBox="0 0 1000 1248" style="max-width:100%;height:auto" role="img" aria-labelledby="title desc">
-  <title id="title">GitHub CI와 수동 Azure 실행 및 발표 Workflow</title>
-  <desc id="desc">GitHub Actions는 코드와 Bicep을 검사하지만 배포하지 않습니다. 운영자는 Azure 기반 환경과 네트워크를 준비하고 compute, assets, train, external, deploy, verify 순서로 실행합니다. 명령 실행 순서는 동일 모델의 lineage를 의미하지 않습니다. assets에는 Components 등록이 포함되고 deploy는 별도 HF 모델을 배포합니다. 발표에서는 완료된 Job과 Endpoint를 사용합니다.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="994" viewBox="0 0 1000 994" style="max-width:100%;height:auto" role="img" aria-labelledby="title desc">
+  <title id="title">GitHub CI와 수동 Azure 실행 Workflow</title>
+  <desc id="desc">코드 검증 CI는 코드와 Bicep을 검사하지만 Azure 리소스를 배포하지 않습니다. 운영자는 Azure 기반 환경과 네트워크를 준비하고 compute, assets, train, external, deploy, verify 순서로 실행합니다. 명령 실행 순서는 동일 모델의 lineage를 의미하지 않습니다. assets에는 Components 등록이 포함되고 deploy는 별도 HF 모델을 배포합니다.</desc>
   <defs>
     <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M1 1 9 5 1 9Z" fill="#32658b"/></marker>
     <style>
@@ -11,9 +11,9 @@
       .command{font-family:Consolas,"Courier New",monospace;font-size:20px;font-weight:700;fill:#075b93}
     </style>
   </defs>
-  <rect width="1000" height="1248" rx="16" fill="#fff"/>
-  <text x="32" y="46" class="title">개발 → Azure 실행 → 세션 시연 Workflow</text>
-  <text x="32" y="76" class="small">CI 검증 / 운영자 수동 실행 / 준비된 결과 시연을 분리합니다.</text>
+  <rect width="1000" height="994" rx="16" fill="#fff"/>
+  <text x="32" y="46" class="title">코드 검증 → 운영자 Azure 실행 Workflow</text>
+  <text x="32" y="76" class="small">코드·템플릿 검증 CI와 운영자 수동 실행의 경계</text>
 
   <g class="panel" id="github-ci">
     <rect x="24" y="112" width="952" height="278" rx="14" fill="#f1f5fa" stroke="#b8c9da"/>
@@ -105,39 +105,4 @@
     <text x="44" y="958" class="small">local/state.json: 단계 결과 · local/verification.json: 호출 결과 (모두 Git 제외)</text>
   </g>
 
-  <g class="panel" id="presentation">
-    <rect x="24" y="994" width="952" height="230" rx="14" fill="#eaf7f5" stroke="#76ada7"/>
-    <text x="44" y="1028" class="heading">C / 발표 당일: 준비된 결과로 Studio 탐색</text>
-    <g class="node" id="data-tab">
-      <rect x="44" y="1056" width="168" height="72" rx="8" class="box"/>
-      <text x="60" y="1086" class="heading">Data</text>
-      <text x="60" y="1112" class="small">v1 / v2</text>
-    </g>
-    <g class="node" id="jobs-tab">
-      <rect x="230" y="1056" width="168" height="72" rx="8" class="box"/>
-      <text x="246" y="1086" class="heading">Jobs</text>
-      <text x="246" y="1112" class="small">Experiments</text>
-    </g>
-    <g class="node" id="models-tab">
-      <rect x="416" y="1056" width="168" height="72" rx="8" class="box"/>
-      <text x="432" y="1086" class="heading">Models</text>
-      <text x="432" y="1112" class="small">모델 버전</text>
-    </g>
-    <g class="node" id="environments-tab">
-      <rect x="602" y="1056" width="168" height="72" rx="8" class="box"/>
-      <text x="618" y="1086">Environments</text>
-      <text x="618" y="1112" class="small">ACR 이미지</text>
-    </g>
-    <g class="node" id="endpoint-tab">
-      <rect x="788" y="1056" width="168" height="72" rx="8" class="box"/>
-      <text x="804" y="1086" class="heading">Endpoints</text>
-      <text x="804" y="1112" class="small">Test / Consume</text>
-    </g>
-    <path d="M212 1092H230" class="edge"/>
-    <path d="M398 1092H416" class="edge"/>
-    <path d="M584 1092H602" class="edge"/>
-    <path d="M770 1092H788" class="edge"/>
-    <text x="44" y="1164">Completed Job과 영어 Endpoint 샘플을 사용하고, 한국어 품질 한계를 안내합니다.</text>
-    <text x="44" y="1196" class="small">Studio 탭의 로그인 후 시각 검증은 별도로 필요합니다. 최초 이미지 빌드·VM 대기는 사전 실행하세요.</text>
-  </g>
 </svg>

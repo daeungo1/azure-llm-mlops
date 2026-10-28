@@ -21,7 +21,6 @@ def source_tree(tmp_path, site_builder):
     sources = [
         "README.md",
         "docs/session-home.md",
-        "docs/session-guide.md",
         "docs/deployment-status.md",
         "docs/stylesheets/session.css",
         *[f"docs/images/{name}" for name in site_builder.SVG_FILES],
@@ -86,10 +85,27 @@ def test_source_generation_is_repeatable_and_allowlisted(site_builder, source_tr
     assert "PRIVATE" not in "\n".join(
         file.read_text(encoding="utf-8") for file in output.rglob("*") if file.is_file()
     )
-    assert "[발표자 가이드](session-guide.md)" in (output / "index.md").read_text(encoding="utf-8")
+    assert not (output / "session-guide.md").exists()
+    content = "\n".join(file.read_text(encoding="utf-8") for file in output.rglob("*.md"))
+    for removed in ("session-guide.md", "발표자 가이드", "Studio 체크포인트", "발표 당일"):
+        assert removed not in content
     first = (output / "01-overview.md").read_text(encoding="utf-8")
     assert "images/mlops-overview.svg" in first
-    assert "Studio 체크포인트" in first
+
+
+def test_readme_starts_with_site_link():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    body = readme.split("---", 2)[2].lstrip()
+    assert body.startswith(
+        "[Azure ML MLOps 문서 사이트](https://daeungo1.github.io/azure-llm-mlops/)"
+    )
+
+
+def test_workflow_diagram_has_no_presentation_plan():
+    svg = (ROOT / "docs" / "images" / "demo-workflow.svg").read_text(encoding="utf-8")
+    assert 'id="presentation"' not in svg
+    assert "발표" not in svg
+    assert "세션 시연" not in svg
 
 
 def test_unexpected_output_file_blocks_publication(site_builder, source_tree):

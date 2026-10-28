@@ -1,4 +1,4 @@
-site_name: Azure ML MLOps Session
+site_name: Azure ML MLOps
 site_description: KT 교육 데모로 살펴보는 Azure ML의 데이터·실험·모델 관리와 CPU 서빙
 site_url: https://daeungo1.github.io/azure-llm-mlops/
 repo_url: https://github.com/daeungo1/azure-llm-mlops
@@ -50,7 +50,7 @@ markdown_extensions:
 extra_css:
   - stylesheets/session.css
 nav:
-  - 세션 시작: index.md
+  - 개요: index.md
   - MLOps 개념과 아키텍처:
       - 01. MLOps Overview: 01-overview.md
       - 02. 아키텍처 · 팀 격리: 02-architecture.md
@@ -64,9 +64,8 @@ nav:
       - 08. HF CPU 서빙: 08-serving.md
       - 09. 외부 학습 연계: 09-external.md
       - 10. 보안 · 관측 · 비용: 10-operations.md
-      - 11. CI · 발표 Workflow: 11-workflow.md
-  - 시연과 검증:
-      - 발표자 가이드: session-guide.md
+      - 11. CI · 실행 Workflow: 11-workflow.md
+  - 검증:
       - 실제 배포 · 검증 기록: deployment-status.md
 validation:
   nav:

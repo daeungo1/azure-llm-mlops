@@ -13,44 +13,47 @@ from urllib.parse import quote, urlsplit
 class Chapter:
     slug: str
     diagram: str
-    checkpoint: str
+    description: str
 
 
 CHAPTERS = (
-    Chapter("01-overview", "mlops-overview.svg", "학습 경로와 별도의 HF 서빙 경로를 구분합니다."),
     Chapter(
-        "02-architecture", "azure-architecture.svg", "Workspace 연결 리소스와 팀별 RG를 엽니다."
+        "01-overview", "mlops-overview.svg", "DevOps 기반과 데이터·실험·모델 자산의 관리 경계."
     ),
     Chapter(
-        "03-data", "data-asset-versions.svg", "Data v1/v2와 Datastore의 인증·미리보기를 확인합니다."
+        "02-architecture", "azure-architecture.svg", "Workspace 연결 리소스, 팀 RG와 공용 Registry."
+    ),
+    Chapter("03-data", "data-asset-versions.svg", "Storage 연결과 데이터 경로·버전 참조의 차이."),
+    Chapter(
+        "04-pipelines", "mlops-pipeline.svg", "Prepare·Train Pipeline과 재현 가능한 실행 이력."
     ),
     Chapter(
-        "04-pipelines", "mlops-pipeline.svg", "Completed Pipeline의 Prepare → Train을 따라갑니다."
+        "05-mlflow",
+        "mlflow-experiment-comparison.svg",
+        "동일한 holdout의 파라미터·지표·산출물 비교.",
     ),
-    Chapter("05-mlflow", "mlflow-experiment-comparison.svg", "같은 holdout의 두 run을 비교합니다."),
-    Chapter("06-models", "model-package-lineage.svg", "Model 버전과 원본 Job·패키지를 연결합니다."),
+    Chapter("06-models", "model-package-lineage.svg", "MLflow 패키지와 원본 Job·등록 모델 버전."),
     Chapter(
-        "07-environments", "environment-acr-build.svg", "Environment의 build log와 ACR을 엽니다."
+        "07-environments", "environment-acr-build.svg", "환경 정의, AML 이미지 빌드와 ACR digest."
     ),
     Chapter(
-        "08-serving", "endpoint-request-flow.svg", "Test·Consume·Logs에서 응답과 인증을 확인합니다."
+        "08-serving", "endpoint-request-flow.svg", "Entra 인증, MiniLM CPU Deployment와 응답 코드."
     ),
     Chapter(
         "09-external",
         "external-training-tracking.svg",
-        "외부 run의 실행 출처·데이터 버전을 봅니다.",
+        "외부 CPU 연산과 AML 추적·모델 관리 위치 분리.",
     ),
     Chapter(
-        "10-operations", "operating-boundaries.svg", "보안·관측·비용을 각각의 근거로 확인합니다."
+        "10-operations", "operating-boundaries.svg", "접근 권한·네트워크·요청 관측·팀별 비용 경계."
     ),
     Chapter(
-        "11-workflow", "demo-workflow.svg", "검증 CI와 수동 클라우드 실행의 경계를 설명합니다."
+        "11-workflow", "demo-workflow.svg", "코드 검증 CI와 운영자 실행·모델 운영 자동화의 차이."
     ),
 )
 SVG_FILES = tuple(chapter.diagram for chapter in CHAPTERS) + ("multi-team-architecture.svg",)
 PUBLIC_PAGES = {
     "docs/session-home.md": "index.md",
-    "docs/session-guide.md": "session-guide.md",
     "docs/deployment-status.md": "deployment-status.md",
 }
 PUBLIC_FILES = {
@@ -144,7 +147,7 @@ def build_source(root: Path) -> Path:
             text = public_markdown(Path(source), (root / source).read_text(encoding="utf-8"))
             if target == "index.md":
                 cards = "\n\n".join(
-                    f"- **[{title}]({chapter.slug}.md)**\n\n    {chapter.checkpoint}"
+                    f"- **[{title}]({chapter.slug}.md)**\n\n    {chapter.description}"
                     for chapter, (title, _) in zip(CHAPTERS, chapters.values(), strict=True)
                 )
                 text = text.replace("<!-- SESSION_CHAPTERS -->", cards)
@@ -156,10 +159,9 @@ def build_source(root: Path) -> Path:
         body = re.sub(r"^(#{3,6}) ", lambda match: match[1][1:] + " ", body, flags=re.MULTILINE)
         text = (
             f"---\ntitle: {json.dumps(title, ensure_ascii=False)}\n"
-            f"description: {json.dumps(chapter.checkpoint, ensure_ascii=False)}\n---\n\n"
+            f"description: {json.dumps(chapter.description, ensure_ascii=False)}\n---\n\n"
         )
         text += public_markdown(Path("README.md"), body)
-        text += f'\n\n!!! tip "Studio 체크포인트"\n\n    {chapter.checkpoint}\n'
         (output / f"{chapter.slug}.md").write_text(text, encoding="utf-8")
     return output
 

@@ -77,9 +77,9 @@ Managed Network mode를 처음부터 Disabled로 설정했습니다.
 기존 AllowInternetOutbound 모드를 Disabled로 되돌리는 변경은 지원되지 않습니다.
 Compute는 팀 전용 subnet과 public IP 없는 노드를 사용합니다.
 Public IP 없는 AML Compute를 만들려면 Workspace Private Endpoint가 먼저 필요합니다.
-Workspace의 publicNetworkAccess는 Enabled이므로 발표 PC의 Studio 진입은 유지됩니다.
+Workspace의 publicNetworkAccess는 Enabled이므로 운영 PC의 Studio 진입은 유지됩니다.
 Registry backing Blob의 public 접근은 열지 않았으므로,
-발표 PC에서 그 Blob을 직접 다운로드하려면 별도 private 연결이 필요합니다.
+운영 PC에서 그 Blob을 직접 다운로드하려면 별도 private 연결이 필요합니다.
 Blob Private DNS 링크에만 `NxDomainRedirect`를 적용했습니다.
 자기 팀·Registry의 기존 DNS 레코드는 private IP를 사용하고,
 레코드가 없는 상대 팀 Blob은 public DNS로 해석해 실제 RBAC 거부를 검사합니다.
@@ -92,7 +92,7 @@ Blob Private DNS 링크에만 `NxDomainRedirect`를 적용했습니다.
 검증 Component는 별도 코드 업로드가 필요 없는 인라인 명령으로 등록했습니다.
 
 팀 Compute identity에는 자기 Storage의 Blob 역할과 Registry Reader만 부여하는 방식입니다.
-구독 Owner인 발표자의 모든 팀 조회는 팀 사용자 격리의 증거가 아닙니다.
+구독 Owner 계정의 모든 팀 조회는 팀 사용자 격리의 증거가 아닙니다.
 실제 Entra 팀 사용자·그룹, 10개 팀 전체, Slurm 연동과 운영 보안 인증은 검증 범위가 아닙니다.
 
 ### 비용 구분과 현재 조회 결과
@@ -260,7 +260,7 @@ Random Forest 0.7307 / 0.7845입니다. 버전 2가 더 우수하다고 주장�
 MLflow adapter 1.61.0은 MLflow 2.22.2의 artifact API와 충돌했습니다.
 로컬에서 검증한 `azureml-mlflow==1.62.0.post6`으로 환경 v2를 만들어
 실제 클라우드 학습·artifact·모델 등록을 성공시켰습니다.
-실패 이력은 숨기지 않았으며 발표에는 위 Completed Job을 사용하세요.
+이전 실패 이력은 보존되어 있으며 현재 완료된 Job과 구분합니다.
 
 ### 추가 호출 테스트
 
@@ -285,7 +285,7 @@ MLflow adapter 1.61.0은 MLflow 2.22.2의 artifact API와 충돌했습니다.
 cosine similarity로 비교해 가장 큰 범주를 반환합니다.
 신뢰도 임계값과 "기타" 범주가 없어 낮은 similarity에서도 항상 한 범주를 반환합니다.
 MiniLM은 영어 임베딩 모델이므로 한국어 청구·네트워크 문장은 cancellation으로 오분류되었습니다.
-한국어 시연이나 실제 업무에는 다국어 모델, 임계값과 "기타" 처리, 별도 품질 검증이 필요합니다.
+한국어 입력이나 실제 업무에는 다국어 모델, 임계값과 "기타" 처리, 별도 품질 검증이 필요합니다.
 토큰화는 256 token에서 잘리므로 2,000자 입력 허용이 전체 문장 반영을 뜻하지 않습니다.
 
 배포 로그(`get_logs`)에는 거부된 요청의 `Rejected invalid scoring request: <사유>`
@@ -352,40 +352,16 @@ az acr repository show-tags --name crktmlopsaow7cshia2xmu `
   --detail --query "[].{tag:name,digest:digest}" -o table
 ```
 
-Studio의 Environments에서 환경별 build log를 확인하고,
-Azure Portal의 ACR Repositories에서 같은 repository/tag/digest를 보여주세요.
+Studio의 Environments에는 환경별 build log가,
+Azure Portal의 ACR Repositories에는 같은 repository/tag/digest가 남아 있습니다.
 학습 Job과 온라인 배포는 해당 환경 이미지를 사용하며,
 실제 학습 완료와 Endpoint 추론 성공은 위 E2E 결과로 별도 검증했습니다.
 
-## 발표 및 재실행
-
-소규모 합성 데이터 1,500행으로 CPU 학습을 수행합니다.
-두 모델은 동일한 1,125행 train / 375행 holdout을 사용합니다.
-HF MiniLM은 별도 사전학습 임베딩 모델이며 continual fine-tuning은 하지 않았습니다.
-훈련한 churn 모델을 HF 모델이라고 설명하면 안 됩니다.
-
-기존 자산을 확인하고 Endpoint를 호출하는 검증은 다음과 같습니다.
-
-```powershell
-uv run --no-sync python -m demo.manage verify
-```
-
-위 명령은 실제 추론 요청을 발생시키는 실행 명령이며 읽기 전용 상태 조회가 아닙니다.
-2026-10-27 09:49 UTC 실행 결과는 Git에서 제외된 `local/verification.json`에 남았습니다.
-환경·코드만 갱신하려면 `components`를 사용하고 버전을 증가시키세요.
-기존 Data/Model 버전은 immutable이므로 `assets`나 전체 `all`을 기존 환경에서
-반복 실행하여 덮어쓰지 마세요. 새 학습은 `train`으로 제출할 수 있으나
-그 결과를 등록하려면 코드에서 모델 버전도 새 버전으로 올려야 합니다.
-최초 이미지 빌드와 VM 할당은 학습 시간과 별개이며 사전 실행해야 합니다.
+## Studio 시각적 검증 범위
 
 브라우저에서 Studio를 열었지만 로그인 화면으로 이동하여
 로그인 후 탭별 시각적 검증은 수행하지 못했습니다.
 자산 목록·Job 상태·모델 버전·Endpoint 호출은 인증된 SDK/API로 검증했습니다.
-실제 발표자는 동일 Workspace에 로그인해서 탭을 확인해야 합니다.
-
-기존 `mlw-ktmlops`, 실패한 이전 Endpoint와 Job 이력은 삭제하지 않았습니다.
-새 Endpoint DS2_v2 1대, ACR Premium, Private Endpoint와 로그는 계속 과금됩니다.
-학습 클러스터는 min=0입니다.
 
 ## 로컬 검증 결과
 

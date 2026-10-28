@@ -1,6 +1,6 @@
 ---
-title: Azure ML MLOps Session
-description: 도식에서 시작해 실제 Studio 자산과 실행 근거로 이어지는 KT MLOps 세션
+title: Azure ML MLOps
+description: Azure ML의 주요 기능과 실제 자산·실행 근거를 정리한 MLOps 기술 문서
 hide:
   - toc
 ---
@@ -12,12 +12,12 @@ hide:
 ## Azure ML로 연결하는 MLOps
 
 데이터에서 실험과 모델로, 그리고 인증된 CPU 서빙으로.
-도식으로 전체 흐름을 이해하고 실제 Azure ML Studio에서 근거를 확인하는 세션입니다.
+Azure ML의 주요 기능과 실제 자산·실행 근거를 도식으로 정리한 기술 문서입니다.
 
-[01번부터 시작하기](01-overview.md){ .md-button .md-button--primary }
+[MLOps 개요 보기](01-overview.md){ .md-button .md-button--primary }
 [실제 검증 기록](deployment-status.md){ .md-button }
 
-<p class="session-meta">KT 교육 세션 · 2026.10.29 · Korea Central · 합성 데이터</p>
+<p class="session-meta">Azure Machine Learning · Korea Central · 합성 데이터</p>
 
 </div>
 
@@ -36,7 +36,7 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 
 </div>
 
-## 오늘 확인할 세 가지
+## MLOps의 세 가지 관리 축
 
 <div class="grid cards" markdown>
 
@@ -54,9 +54,8 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 
 </div>
 
-## 도식으로 따라가는 11개 챕터
+## Azure ML 주요 기능 11개 챕터
 
-각 챕터는 **SVG → 개념 설명 → Studio 체크포인트**로 이어집니다.
 본문과 도식은 README의 1~11번을 그대로 재사용하므로 설명이 서로 달라지지 않습니다.
 
 <div class="grid cards chapter-cards" markdown>
@@ -87,10 +86,10 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 !!! warning "운영 완성으로 해석하지 않기"
 
     자동 재학습·품질 승인·승격·롤백, Drift·SLO, 실제 Slurm 통합은 구현 범위 밖입니다.
-    로그인 후 Studio 탭별 시각적 점검은 발표자가 수행해야 합니다.
+    로그인 후 Studio 탭별 시각적 검증은 완료되지 않았습니다.
     HF는 영어 임베딩 모델이며 추가 학습하거나 한국어 품질을 검증한 구성이 아닙니다.
 
-[발표자 가이드](session-guide.md) · [배포·검증 기록](deployment-status.md) ·
+[배포·검증 기록](deployment-status.md) ·
 [코드와 재실행 참고](https://github.com/daeungo1/azure-llm-mlops#12-재실행개발-참고)
 
 이 공개 사이트에는 고객 내부 원문, 비공개 아키텍처 이미지, PPTX, 자격 증명과 로컬 실행 파일을 포함하지 않습니다.

@@ -4,19 +4,21 @@ description: 데이터와 모델 버전 관리, 실험 추적, 재현 가능한 
 ms.date: 2026-10-28
 ---
 
+[Azure ML MLOps 문서 사이트](https://daeungo1.github.io/azure-llm-mlops/)
+
 ## 1. MLOps에서 Azure ML을 활용하는 이유
 
 ![DevOps 기반에 데이터·실험·환경·모델 관리를 추가하는 MLOps](docs/images/mlops-overview.svg)
 
-[SVG 원본 크게 보기](docs/images/mlops-overview.svg) · [발표 세션 페이지](https://daeungo1.github.io/azure-llm-mlops/)
+[SVG 원본 크게 보기](docs/images/mlops-overview.svg)
 
 MLOps는 모델을 한 번 학습하는 작업을 넘어, 어떤 데이터·코드·환경으로 만들었는지
 기록하고 평가한 모델을 서비스하며 운영 결과를 다음 개선에 연결하는 활동입니다.
 DevOps의 코드 버전·테스트·배포에 데이터 버전, 실험 지표, 모델 패키지와 예측 품질 관리를 더합니다.
 
 Azure Machine Learning은 이 과정의 자산과 실행 이력을 Workspace에서 관리합니다.
-이번 KT 교육에서는 코드를 따라 입력하기보다 Azure ML Studio에서
-데이터, 학습, 실험, 모델, 실행 환경과 Endpoint가 맡는 역할을 확인합니다.
+이 데모는 Azure ML Studio의 데이터, 학습, 실험, 모델,
+실행 환경과 Endpoint가 맡는 역할을 다룹니다.
 
 | 구분      | 이번 데모에서 확인할 흐름                                                        |
 |-----------|---------------------------------------------------------------------------------|
@@ -31,8 +33,7 @@ Azure Machine Learning은 이 과정의 자산과 실행 이력을 Workspace에�
 
 공개 데모에는 합성 데이터만 사용합니다.
 실제 고객 데이터, 고객 내부 설계 원문, 발표 자료, 자격 증명은 공개 대상에 포함하지 않습니다.
-발표자료의 개념 → Repo의 근거 → Studio의 실물 순서로 따라갈 수 있도록 구성했습니다.
-1~11번은 [발표 세션 페이지](https://daeungo1.github.io/azure-llm-mlops/)에서도 같은 본문과 SVG로 제공합니다.
+문서 사이트도 1~11번과 같은 본문과 SVG를 사용합니다.
 
 ## 2. 전체 아키텍처: Workspace를 중심으로 역할 나누기
 
@@ -54,7 +55,7 @@ Studio와 Endpoint의 진입점, 인증된 ACR 이미지 경로는 public입니�
 public 접근과 익명 접근은 다릅니다.
 
 확인 위치: Studio의 Workspace·Compute·Endpoints와 Azure Portal의 연결 리소스.
-보안 경계와 발표 PC 접근 조건은 10번 항목에서 설명합니다.
+보안 경계와 운영 PC 접근 조건은 10번 항목에서 설명합니다.
 
 ### 2.1 리소스별 역할과 비용 경계
 
@@ -96,7 +97,7 @@ ACR은 컨테이너 이미지를 저장합니다. Registry도 자체 backing Sto
 Workspace 이름만 나누는 것이 아니라 Storage·Key Vault·ACR·로그와 Compute까지 RG별로 분리합니다.
 공용 자산을 사용해도 다른 팀의 Storage 읽기 권한까지 공유하지는 않습니다.
 팀의 Compute identity에는 자기 Storage 권한과 공용 Registry 읽기 권한만 부여합니다.
-구독 Owner인 발표 계정의 접근 권한은 팀 실행 identity의 권한과 구분해야 합니다.
+구독 Owner인 운영 계정의 접근 권한은 팀 실행 identity의 권한과 구분해야 합니다.
 
 Cost Management의 Cost analysis에서 Resource group으로 묶어 팀 직접 비용을 확인합니다.
 Registry가 자동 생성하는 관리형 RG의 Storage·ACR 비용은 별도 공통 비용입니다.
@@ -271,8 +272,8 @@ MLOps에서는 모델 품질 외에도 접근 권한, 서비스 상태와 지속
 이번 구성은 public 진입점을 사용하되 인증과 Storage 정책을 충족하는 경계를 둡니다.
 
 * Storage는 `SecuredByPerimeter` 및 NSP Enforced 규칙으로 보호합니다.
-  발표 PC의 직접 접근에는 Entra 권한과 허용된 공인 egress IP가 필요합니다.
-  행사장·VPN 변경 시 IP와 Storage 접근을 다시 확인합니다.
+  운영 PC의 직접 접근에는 Entra 권한과 허용된 공인 egress IP가 필요합니다.
+  네트워크·VPN 변경 시 IP와 Storage 접근을 다시 확인합니다.
 * AML의 Storage/Key Vault 접근은 Managed Network의 Private Endpoint를 사용합니다.
   `AllowInternetOutbound` 설정이므로 완전한 인터넷 차단 환경은 아닙니다.
 * ACR은 인증된 public 이미지 경로를 사용하며 Private Endpoint는 없습니다.
@@ -288,11 +289,11 @@ Storage Networking·NSP·ACR·Application Insights·Log Analytics를 연결해 �
 팀 RG·Workspace와 실행 identity 범위의 격리는 별도 다중 팀 데모에서 다룹니다.
 실제 10개 팀의 사용자·Entra 그룹 권한, GPU·Slurm/Lustre, 운영 HA는 검증 범위가 아닙니다.
 
-## 11. CI와 발표 Workflow: 검증 자동화와 모델 운영 자동화 구분하기
+## 11. CI와 실행 Workflow: 검증 자동화와 모델 운영 자동화 구분하기
 
 <a id="실행-workflow"></a>
 
-![실행 Workflow: GitHub CI 검증과 운영자 수동 Azure 실행, 발표 당일 Studio 탐색 순서](docs/images/demo-workflow.svg)
+![실행 Workflow: GitHub CI 검증과 운영자 수동 Azure 실행](docs/images/demo-workflow.svg)
 
 [Workflow SVG 원본 크게 보기](docs/images/demo-workflow.svg)
 
@@ -302,20 +303,8 @@ GitHub Actions는 코드의 Ruff·pytest와 Bicep build를 검증합니다.
 현재 Azure 실행은 운영자가 수행하고, AML이 환경 이미지를 빌드해 ACR에 저장합니다.
 운영 전환 시 품질 기준·승인·승격/롤백·재학습 trigger를 추가 설계해야 합니다.
 
-발표에서는 준비된 Completed Job과 Endpoint를 사용해 다음 순서로 살펴봅니다.
-최초 이미지 빌드와 VM 할당 시간을 학습 시간과 혼동하지 않습니다.
-
-1. Data·Datastores에서 데이터 버전과 실제 읽기 경로를 확인합니다.
-2. Jobs·Components에서 데이터 준비와 학습 흐름을 확인합니다.
-3. Metrics와 Models에서 평가 근거와 등록된 모델을 연결합니다.
-4. Environments와 ACR에서 실행 환경과 빌드 결과를 확인합니다.
-5. 외부 실험에서 학습 위치와 추적 위치의 차이를 설명합니다.
-6. Endpoints에서 HF 모델의 인증·추론·오류 처리를 확인합니다.
-7. 연결 리소스의 보안·관측·비용과 운영 전환 과제를 정리합니다.
-
 SDK/API와 Endpoint 호출 검증은 완료 이력이 있지만,
 로그인 후 Studio 탭별 시각적 검증은 남아 있습니다.
-발표 전 [교육 진행 가이드](docs/session-guide.md)로 실제 화면을 점검하세요.
 AutoML, Designer의 시각적 편집, Responsible AI, Batch Endpoint와 Drift monitor는 이번 범위 밖입니다.
 
 1~11번의 SVG는 외부 이미지·폰트·스크립트 없이 표시됩니다.
@@ -323,7 +312,6 @@ AutoML, Designer의 시각적 편집, Responsible AI, Batch Endpoint와 Drift mo
 
 ## 12. 재실행·개발 참고
 
-발표 흐름만 확인한다면 위 1~11번과 [탭별 진행 가이드](docs/session-guide.md)를 사용하세요.
 리소스 재구성·코드 실행·종료가 필요한 경우에만 아래 참고 영역을 펼칩니다.
 명령은 읽기 전용이 아니며 학습·추론·배포 비용 또는 리소스 삭제를 발생시킬 수 있습니다.
 
@@ -386,7 +374,7 @@ uv run --no-sync python -m demo.manage deploy
 uv run --no-sync python -m demo.manage verify
 ```
 
-첫 실행은 이미지 빌드와 VM 할당 때문에 오래 걸립니다. 세션 전날 미리 실행하세요.
+첫 실행은 이미지 빌드와 VM 할당 때문에 오래 걸릴 수 있습니다.
 같은 이름/버전의 자산은 덮어쓰는 용도가 아닙니다. 코드·환경·데이터를 변경했다면
 새 버전으로 등록하세요. `train` 재실행은 새 Job을 제출하므로 추가 비용이 발생합니다.
 
@@ -427,11 +415,11 @@ uv run --no-sync python -m demo.multiteam costs --subscription $subscription
 1,500행의 합성 데이터에서 동일한 1,125행 train / 375행 holdout을 사용합니다.
 CPU Logistic Regression과 깊이 6, 100개 트리의 작은 Random Forest를 비교합니다.
 LLM continual fine-tuning은 실행하지 않습니다. 짧은 학습으로 Data → Prepare →
-Train → MLflow package → Model registration을 설명하고, 별도 HF 모델로 CPU 서빙을 보여줍니다.
+Train → MLflow package → Model registration을 구성하고, 별도 HF 모델로 CPU 서빙을 수행합니다.
 HF MiniLM은 학습한 churn 모델이 아니며 두 모델의 lineage를 혼동하지 않습니다.
 
-발표에서는 준비된 Job과 Endpoint를 먼저 보여주세요. 학습 자체와 달리
-최초 Conda 이미지 빌드, 네트워크 및 VM provisioning은 수 분 이상 걸릴 수 있습니다.
+학습 자체와 달리 최초 Conda 이미지 빌드, 네트워크 및 VM provisioning은
+수 분 이상 걸릴 수 있습니다.
 
 ### ACR Custom 이미지 빌드
 
@@ -519,6 +507,5 @@ Key Vault purge protection 때문에 삭제 후에도 보존 기간 동안 이�
 
 ## 13. 상세 문서
 
-* [교육 진행 가이드와 Studio 탭 순서](docs/session-guide.md)
 * [현재 기능에 대한 공식 근거](docs/research.md)
 * [실행 검증 결과와 전체 MLOps 완료 범위](docs/deployment-status.md)
