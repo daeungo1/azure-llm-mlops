@@ -18,6 +18,21 @@ LOGGER = logging.getLogger(__name__)
 FOLDER = "Users/kt-demo/kt-mlops-training"
 
 
+def notebook_configs(subscription: str, *, public_workspaces: bool = False) -> list[dict[str, str]]:
+    configs = team_configs(subscription)
+    if not public_workspaces:
+        return configs
+    return [
+        {
+            **config,
+            "workspace_name": f"mlw-ktmlops-public-{number}",
+            "compute_instance": f"ci-kt-public{number}",
+            "notebook_folder": f"{FOLDER}-public",
+        }
+        for number, config in enumerate(configs, 1)
+    ]
+
+
 def sample_files(config: dict[str, str]) -> dict[str, bytes]:
     files = {
         "01_submit_training.ipynb": (ROOT / "notebooks" / "01_submit_training.ipynb").read_bytes(),
@@ -45,6 +60,7 @@ def publish_team(config: dict[str, str]) -> dict:
     }
     sample_config["notebook_identity_client_id"] = identity["properties"]["clientId"]
     datastore = ml.datastores.get("workspaceworkingdirectory")
+    folder = config.get("notebook_folder", FOLDER)
     files = sample_files(sample_config)
     with ShareServiceClient(
         f"https://{datastore.account_name}.file.core.windows.net",
@@ -52,14 +68,14 @@ def publish_team(config: dict[str, str]) -> dict:
         token_intent="backup",
     ) as service:
         share = service.get_share_client(datastore.file_share_name)
-        for directory in ("Users", "Users/kt-demo", FOLDER, f"{FOLDER}/src", f"{FOLDER}/src/demo"):
+        for directory in ("Users", "Users/kt-demo", folder, f"{folder}/src", f"{folder}/src/demo"):
             try:
                 share.get_directory_client(directory).create_directory()
             except ResourceExistsError:
                 LOGGER.info("Using existing sample directory: %s", directory)
         verified = {}
         for name, content in files.items():
-            target = share.get_file_client(f"{FOLDER}/{name}")
+            target = share.get_file_client(f"{folder}/{name}")
             target.upload_file(content)
             downloaded = target.download_file().readall()
             if downloaded != content:
@@ -69,8 +85,8 @@ def publish_team(config: dict[str, str]) -> dict:
             verified[name] = hashlib.sha256(downloaded).hexdigest()
     proof = {
         "workspace": ml.workspace_name,
-        "compute_instance": f"ci-kt-team{team}",
-        "folder": FOLDER,
+        "compute_instance": config.get("compute_instance", f"ci-kt-team{team}"),
+        "folder": folder,
         "share": datastore.file_share_name,
         "files_sha256": verified,
         "verified_utc": datetime.now(UTC).isoformat(),
@@ -85,11 +101,21 @@ def publish_team(config: dict[str, str]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subscription", required=True)
+    parser.add_argument(
+        "--public-workspaces",
+        action="store_true",
+        help="Publish to the public-only laptop Notebook workspaces.",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logging.getLogger("azure").setLevel(logging.WARNING)
     with ThreadPoolExecutor(max_workers=3) as pool:
-        results = list(pool.map(publish_team, team_configs(args.subscription)))
+        results = list(
+            pool.map(
+                publish_team,
+                notebook_configs(args.subscription, public_workspaces=args.public_workspaces),
+            )
+        )
     print(json.dumps(results, indent=2))
 
 

@@ -59,6 +59,62 @@ Workspace Private Endpoint는 세 팀 모두 Approved입니다.
 
 ### 팀별 Compute Instance와 Training Notebook
 
+#### 랩탑용 Public Notebook Workspace
+
+랩탑에서 발생한 `notebook-instance-proxy` HTTP 500을 조사했습니다.
+[공식 Private Link 문서](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-private-link?view=azureml-api-2#enable-public-access)는
+Private Endpoint가 있는 Workspace에 public 경로로 접근할 때
+Compute Instance의 Jupyter·JupyterLab·Notebook 실행을 지원하지 않는다고 명시합니다.
+기존 Compute 내부의 Managed Identity 검증은 성공했지만 이 브라우저 경로를 검증한 것은 아니었습니다.
+
+기존 Private Workspace와 Endpoint는 변경하지 않고,
+같은 팀 RG에 **Workspace Private Endpoint가 없는 Public Workspace**를 추가했습니다.
+팀의 Storage·Key Vault·ACR·Application Insights를 재사용하며 다른 팀 자원과는 분리됩니다.
+
+| Public Workspace | Compute Instance | 상태 | Workspace Private Endpoint |
+|---|---|---|---|
+| [mlw-ktmlops-public-1](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops-team-1/providers/Microsoft.MachineLearningServices/workspaces/mlw-ktmlops-public-1&tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf) | `ci-kt-public1` | Succeeded / Running | 없음 |
+| [mlw-ktmlops-public-2](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops-team-2/providers/Microsoft.MachineLearningServices/workspaces/mlw-ktmlops-public-2&tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf) | `ci-kt-public2` | Succeeded / Running | 없음 |
+| [mlw-ktmlops-public-3](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops-team-3/providers/Microsoft.MachineLearningServices/workspaces/mlw-ktmlops-public-3&tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf) | `ci-kt-public3` | Succeeded / Running | 없음 |
+
+세 Public Instance 모두 public IP·SSO가 활성화되고 SSH는 비활성화되어 있습니다.
+세 Instance의 Jupyter와 JupyterLab 총 **6/6 URL**은 랩탑에서 HTTPS 요청 시
+HTTP 302로 Entra 로그인에 연결됩니다. 인증 없는 요청에 내부 500을 반환하지 않는 것을 확인한 것이며,
+사용자 로그인 후 Studio kernel 실행까지 검증한 것은 아닙니다.
+각 Public Workspace에는 별도 `cpu-secure` Cluster(min=0, max=1)를 생성했습니다.
+
+Notebook은 **Notebooks → Users → kt-demo → kt-mlops-training-public**에서 엽니다.
+각 팀 Public Workspace를 지정하는 설정과 학습 Source를 포함한 **15/15 파일**의
+upload·download bytes와 SHA256 일치를 확인했습니다.
+공유 Azure Files share에서 기존 Private 샘플 설정을 덮어쓰지 않도록 폴더를 분리했습니다.
+
+각 Public Workspace에 두 알고리즘의 Pipeline을 제출하고 **6/6 Completed**를 확인했습니다.
+최종 Notebook의 connect·wait·metrics 셀을 업로드한 파일 그대로 실행해
+여섯 Train Run의 Metrics, train/test rows(1,125/375),
+`evaluation/metrics.json`, `evaluation/confusion_matrix.png`를 조회했습니다.
+이는 로컬 Azure CLI 인증을 사용한 Notebook 코드 검증이며 Studio UI 실행과 구분합니다.
+
+| Public Workspace | Logistic Pipeline | Forest Pipeline | 상태 |
+|---|---|---|---|
+| `mlw-ktmlops-public-1` | `jolly_brain_zzpghbvrjf` | `polite_parang_8sdmbpzbpg` | 모두 Completed |
+| `mlw-ktmlops-public-2` | `frank_pig_069shg5637` | `gifted_steelpan_wd5nk784zt` | 모두 Completed |
+| `mlw-ktmlops-public-3` | `magenta_eye_hwmw9ztjsr` | `cool_receipt_7dzxl4jrrb` | 모두 Completed |
+
+Pipeline 완료 직후 MLflow 검색에 Train Run이 아직 나타나지 않는 사례도 확인했습니다.
+Metrics 셀은 검색 대신 Azure ML Child Job 목록에서 Train ID를 찾아 MLflow `get_run`으로 직접 조회합니다.
+이 수정 후 새 Job을 추가 제출하지 않고 여섯 기존 Run의 재검증을 통과했습니다.
+
+```powershell
+uv run --no-sync python -m demo.notebook_setup --subscription $subscription --public-workspaces
+```
+
+네트워크 참고: 기존 Private Endpoint는 유지하며,
+Compute subnet에는 AzureMachineLearning service tag에서 TCP 44224로 들어오는 연결만 추가 허용했습니다.
+Azure ML API·Notebook Private DNS zone은 private record가 없는 Public Workspace 이름에 한해
+public DNS로 fallback하도록 설정했습니다. Storage Shared Key 비활성화와 NSP는 유지했습니다.
+
+#### 기존 Private Compute와 샘플
+
 2026-10-29 세 팀 Workspace의 Compute Instance가 모두 **Succeeded / Running**인 것을 실제 API에서 확인했습니다.
 기존 원본 Workspace가 아니라 각 팀 RG에 하나씩 추가했습니다.
 
@@ -133,8 +189,8 @@ SDK의 `jobs.stream()`은 keyless Storage 로그 조회 중 credential 객체를
 Shared Key를 켜거나 인증 오류를 숨기는 fallback은 사용하지 않습니다.
 
 위 Compute 내부 검증은 Command Job 실행이며 Jupyter kernel이나 signed-in Studio UI 검증은 아닙니다.
-Studio의 사용자 로그인은 Managed Identity와 별도이므로,
-Compute owner 계정으로 로그인 또는 Authenticate를 완료한 뒤 kernel을 선택합니다.
+Private Instance는 VNet 접속 환경에서 사용합니다.
+랩탑에서는 위 Public Workspace로 이동하고 Compute owner 계정으로 로그인한 뒤 kernel을 선택합니다.
 
 [Training Notebook 원본](https://github.com/daeungo1/azure-llm-mlops/blob/main/notebooks/01_submit_training.ipynb) ·
 [Studio 실행 순서](https://daeungo1.github.io/azure-llm-mlops/05-mlflow/#notebooks에서-training-job-제출하기)

@@ -228,11 +228,21 @@ Params·Metrics·Tags를 조회할 수 있습니다.
 
 ### Notebooks에서 Training Job 제출하기
 
-세 팀 Workspace에 각각 `ci-kt-team1`, `ci-kt-team2`, `ci-kt-team3` Compute Instance를 생성했습니다.
-Compute Instance는 Notebook을 실행하고 Job을 제출하는 workstation이며,
-실제 Prepare·Train은 기존 `cpu-secure` Compute Cluster에서 실행합니다.
+랩탑에서 VPN 없이 실행할 때는 아래 **Public Notebook Workspace**를 사용합니다.
+기존 `mlw-ktmlops-secure-N` Workspace의 Private Endpoint와 학습·Endpoint는 그대로 유지했습니다.
+Private Endpoint가 있는 Workspace의 public 경로에서는 Compute Instance의 Jupyter 실행을 지원하지 않으므로,
+기존 Workspace의 public access를 켜는 것만으로는 Notebook 연결 문제가 해결되지 않습니다.
 
-1. 해당 팀 Studio의 **Notebooks → Users → kt-demo → kt-mlops-training**을 엽니다.
+| 팀 | 랩탑용 Studio | Compute Instance |
+|---|---|---|
+| Team 1 | [mlw-ktmlops-public-1](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops-team-1/providers/Microsoft.MachineLearningServices/workspaces/mlw-ktmlops-public-1&tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf) | `ci-kt-public1` |
+| Team 2 | [mlw-ktmlops-public-2](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops-team-2/providers/Microsoft.MachineLearningServices/workspaces/mlw-ktmlops-public-2&tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf) | `ci-kt-public2` |
+| Team 3 | [mlw-ktmlops-public-3](https://ml.azure.com/?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourceGroups/rg-kt-mlops-team-3/providers/Microsoft.MachineLearningServices/workspaces/mlw-ktmlops-public-3&tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf) | `ci-kt-public3` |
+
+Compute Instance는 Notebook을 실행하고 Job을 제출하는 workstation이며,
+실제 Prepare·Train은 해당 Public Workspace의 `cpu-secure` Compute Cluster에서 실행합니다.
+
+1. 위 링크로 팀의 **Public Workspace**를 열고 **Notebooks → Users → kt-demo → kt-mlops-training-public**으로 이동합니다.
 2. `01_submit_training.ipynb`를 열고 해당 팀 Compute Instance와 Python kernel을 선택합니다.
 3. dependency 셀부터 실행해 Workspace 연결 → Pipeline 정의 → 두 알고리즘 Job 제출 순서로 진행합니다.
 4. `kt-notebook-training` Experiment의 Parent Pipeline Graph와 Train Child Job의 Metrics·Artifacts를 확인합니다.
@@ -243,13 +253,19 @@ Compute Instance는 Notebook을 실행하고 Job을 제출하는 workstation이�
 Registry Data `telco-churn-shared:1`과 Environment `kt-shared-cpu:1`을 참조하며,
 secret 대신 User-assigned Managed Identity를 사용합니다.
 각 제출 셀 실행은 두 개의 새 Job을 생성합니다. Optional Model 등록은 기본 비활성화이며 기존 Endpoint는 변경하지 않습니다.
+세 Public Workspace에서도 총 여섯 Training Pipeline이 Completed이며,
+각 Train Run의 Metrics와 evaluation Artifacts를 실제 조회했습니다.
 
 Studio의 Compute 연결은 사용자 Entra 로그인, Notebook의 Azure API 호출은 Managed Identity 인증입니다.
 SSO는 세 Instance 모두 활성화되어 있습니다. Studio에서 로그인 또는 Authenticate를 요청하면
 Compute owner 계정으로 인증한 뒤 kernel을 선택합니다.
 로컬 실행 시에는 `az login`을 먼저 완료하세요. Notebook은 Azure CLI token 요청에 600초를 허용합니다.
-세 Compute Instance 내부의 Managed Identity로 Workspace·Notebook 파일 접근도 실제 검증했습니다.
+Public Workspace와 Compute는 Entra 인증을 사용하며 public SSH는 비활성화했습니다.
+세 Jupyter/JupyterLab 주소 모두 랩탑에서 HTTPS 요청 시 Entra 로그인으로 연결되는 것을 확인했습니다.
+이것은 signed-in 브라우저에서 kernel을 실행했다는 의미는 아닙니다.
+기존 Private Instance `ci-kt-teamN`은 VNet 접속 환경용이며 별도 폴더 `kt-mlops-training`을 사용합니다.
 Job 대기는 keyless Storage와 호환되는 상태 조회 방식이며, 로그는 Studio의 Outputs + logs에서 확인합니다.
+Metrics 셀은 검색 index 반영 지연을 피하도록 Train Child Job ID로 MLflow Run을 직접 읽습니다.
 
 [팀별 Compute·Notebook 검증 결과](docs/deployment-status.md#팀별-compute-instance와-training-notebook)
 
@@ -698,7 +714,7 @@ Managed Network를 추가 사용하므로 이전 Basic 기준 일일 비용 추�
 * 학습 DS3_v2 클러스터: min=0, max=2, 유휴 120초 후 축소
 * 실시간 서빙 DS2_v2 1대: 요청이 없어도 계속 과금
 * Log Analytics: 30일 보존, 일일 1GB soft cap (강제 예산 한도 아님)
-* GPU 없음. 팀별 DS3_v2 Compute Instance 1대는 유휴 240분 후 자동 종료
+* GPU 없음. 팀별 Public·Private DS3_v2 Compute Instance 각 1대(총 6대)는 유휴 240분 후 자동 종료
 
 서빙 비용만 중지하려면 인증된 Azure ML Studio에서 `kt-hf-cpu-secure` endpoint를 삭제하세요.
 코드·데이터·모델·Job 이력은 Workspace에 남습니다. 필요 시 `deploy` 단계로 재생성합니다.

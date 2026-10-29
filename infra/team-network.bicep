@@ -53,7 +53,23 @@ resource computeNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: 'nsg-${prefix}-compute'
   location: location
   tags: tags
-  properties: { securityRules: [] }
+  properties: {
+    securityRules: [
+      {
+        name: 'AllowAzureMLNotebookProxy'
+        properties: {
+          priority: 110
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '44224'
+          sourceAddressPrefix: 'AzureMachineLearning'
+          destinationAddressPrefix: '*'
+        }
+      }
+    ]
+  }
 }
 
 resource network 'Microsoft.Network/virtualNetworks@2024-05-01' = {
@@ -106,7 +122,12 @@ resource links 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01
   properties: {
     virtualNetwork: { id: network.id }
     registrationEnabled: false
-    resolutionPolicy: name == 'privatelink.blob.core.windows.net' ? 'NxDomainRedirect' : 'Default'
+    // Keep private records while allowing public Workspace names to resolve.
+    resolutionPolicy: contains([
+      'privatelink.blob.core.windows.net'
+      'privatelink.api.azureml.ms'
+      'privatelink.notebooks.azure.net'
+    ], name) ? 'NxDomainRedirect' : 'Default'
   }
 }]
 

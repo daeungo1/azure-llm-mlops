@@ -104,10 +104,27 @@ def test_peer_blob_rbac_probe_can_resolve_public_names_without_private_records()
     template = (Path(__file__).parents[1] / "infra" / "team-network.bicep").read_text(
         encoding="utf-8"
     )
-    assert (
-        "resolutionPolicy: name == 'privatelink.blob.core.windows.net' "
-        "? 'NxDomainRedirect' : 'Default'" in template
+    policy = template.split("resolutionPolicy: contains([", 1)[1].split(
+        "], name) ? 'NxDomainRedirect' : 'Default'", 1
+    )[0]
+    for zone in (
+        "privatelink.blob.core.windows.net",
+        "privatelink.api.azureml.ms",
+        "privatelink.notebooks.azure.net",
+    ):
+        assert f"'{zone}'" in policy
+    assert "privatelink.file.core.windows.net" not in policy
+    assert "privatelink.vaultcore.azure.net" not in policy
+
+
+def test_public_notebook_proxy_rule_is_restricted_to_azureml_service():
+    template = (Path(__file__).parents[1] / "infra" / "team-network.bicep").read_text(
+        encoding="utf-8"
     )
+    rule = template.split("name: 'AllowAzureMLNotebookProxy'", 1)[1].split("resource network", 1)[0]
+    assert "sourceAddressPrefix: 'AzureMachineLearning'" in rule
+    assert "destinationPortRange: '44224'" in rule
+    assert "direction: 'Inbound'" in rule
 
 
 def test_shared_component_references_registry_model_and_team_identity():
