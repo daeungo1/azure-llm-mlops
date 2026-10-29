@@ -478,6 +478,16 @@ Studio 전체 탭의 기능과 데이터 미리보기 렌더링을 전수 검사
 이는 폴더 Browse API의 복구 증적이며, 수정 후 사용자 브라우저 화면 확인은 별도입니다.
 Workspace 진입이나 Datastore 메타데이터 조회 성공만으로 Blob Browse 성공을 판단하지 않습니다.
 
+2026-10-29 15:08 KST에 원본 `mlw-ktmlops-secure`의 같은 Browse 오류가 다시 보고되었습니다.
+현재 랩탑의 공인 egress IPv4가 원본 NSP 허용 목록에 없어
+인증된 Blob 요청이 `AuthorizationFailure`와 network security perimeter 차단 메시지를 반환했습니다.
+원본 RG의 `nsp-ktmlops`에 해당 `/32`만 추가하고 기존 허용 목록은 유지했습니다.
+수정 후 Studio·Portal Origin의 실제 폴더 목록 GET과 CORS preflight가 모두 HTTP 200이며,
+`LocalUpload/`, `azureml/` 폴더와 27,947-byte 학습 CSV 읽기를 확인했습니다.
+원본 Storage는 계속 `SecuredByPerimeter`, NSP `Enforced`, Shared Key 비활성화 상태입니다.
+이 수정은 Datastore 네트워크 접근 복구이며 CI·Notebook 추가나 인증 방식 변경은 하지 않았습니다.
+사용자 로그인 후 Browse 화면의 렌더링은 별도 확인 대상입니다.
+
 ### 수정한 접근 설정
 
 랩탑의 공인 egress IPv4가 기존 허용 주소와 달라 Storage 조회가 차단되었습니다.
