@@ -16,7 +16,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: python scripts/build_session_site.py
-      - run: uv run --no-project --python 3.11 --with-requirements requirements-docs.txt mkdocs build --strict
+      - run: >-
+          uv run --no-project --python 3.11
+          --default-index https://pypi.org/simple
+          --with-requirements requirements-docs.txt mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

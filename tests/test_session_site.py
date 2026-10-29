@@ -43,6 +43,11 @@ def test_stylesheet_url_changes_with_content():
     )
 
 
+def test_docs_build_uses_official_package_index():
+    workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+    assert "--default-index https://pypi.org/simple" in workflow
+
+
 @pytest.fixture
 def site_builder():
     return importlib.import_module("scripts.build_session_site")
