@@ -4,6 +4,35 @@ description: 교육 MLOps 완료 범위, 로컬 랩탑 접근, 실제 ACR 이미
 ms.date: 2026-10-29
 ---
 
+## Endpoint 호출 검증 요약
+
+!!! success "4개 Endpoint 정상 추론 확인: 실제 HTTPS 요청 12/12 성공"
+
+    기존 HF Endpoint와 팀 1·2·3 Endpoint에 Entra 인증으로 실제 POST 요청을 전송했습니다.
+    각 Endpoint에서 세 문장이 담긴 요청을 3회 반복해 **모두 HTTP 200**을 받았고,
+    매 응답의 모델 이름·384차원·세 intent가 기대값과 일치했습니다.
+    배포 상태가 Succeeded인 것만 확인한 결과가 아니라 실제 추론 응답을 검사한 결과입니다.
+
+| Endpoint | 정상 요청 | 세 문장 분류·384차원 | 검증 시각 (2026-10-29 KST) |
+|---|---|---|---|
+| `kt-hf-cpu-secure` | **200 / 200 / 200** | 모두 일치 | 09:30 |
+| `kt-hf-cpu-team-1` | **200 / 200 / 200** | 모두 일치 | 10:05 |
+| `kt-hf-cpu-team-2` | **200 / 200 / 200** | 모두 일치 | 10:05 |
+| `kt-hf-cpu-team-3` | **200 / 200 / 200** | 모두 일치 | 10:05 |
+
+실제 반환 intent는 입력 순서대로 **`billing` → `network` → `cancellation`**입니다.
+각 intent의 최고 cosine similarity는 **0.792148 / 0.735516 / 0.740036**으로 네 Endpoint에서 동일했습니다.
+이는 보정된 확률이 아닙니다.
+네 Endpoint 모두 무인증 요청 **401**, 빈 `texts` 요청 **424(내부 모델 400)**를 반환해
+인증과 입력 오류 거부도 통과했습니다. 이 4xx 응답은 의도된 거부 결과입니다.
+
+[입력 예제와 실제 반환 결과](https://daeungo1.github.io/azure-llm-mlops/08-serving/#실제-응답-검증-결과) ·
+[팀별 배포·지연 상세](#팀별-hf-cpu-online-endpoint) ·
+[기존 Endpoint 호출 상세](#추가-호출-테스트)
+
+위 시각의 고정 영어 예제를 사용한 기능 검증이며, 상시 health check·전체 정확도·성능 부하 시험은 아닙니다.
+운영자가 수행한 실제 Azure 호출 결과로, GitHub Actions CI-only 실행의 성공이나 CD skipped 상태와는 별개입니다.
+
 ## 다중 팀 RG와 공용 Registry
 
 팀별 권한·비용 경계를 Workspace 이름이나 태그만으로 구분하지 않고,

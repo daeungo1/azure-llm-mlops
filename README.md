@@ -237,7 +237,6 @@ Endpoint는 호출 주소를 제공하고 Deployment는 모델·실행 환경·�
 각 팀의 모델·환경·서빙 인스턴스는 자기 Workspace에 있으며,
 Registry의 churn 모델을 사용하는 Pipeline Job 추론과는 별도 경로입니다.
 Public 호출 주소를 사용하지만 Entra 인증은 필수입니다.
-세 팀 모두 정상 요청 3회 HTTP 200, 무인증 401, 빈 입력 424를 실제 호출로 확인했습니다.
 
 확인 위치: Endpoints의 Test에서 영어 요청을,
 Consume에서 호출 주소와 Entra 인증 방식을,
@@ -259,9 +258,31 @@ Test의 Sample inference Input에는 아래 JSON을 붙여 넣습니다.
 }
 ```
 
+### 실제 응답 검증 결과
+
+> [!TIP]
+> **기존 Endpoint와 팀 1·2·3, 총 4개 Endpoint의 정상 요청 12/12가 HTTP 200으로 성공했습니다.**
+> Endpoint마다 위 세 문장을 담은 요청을 3회 전송했고,
+> 모든 응답의 모델 이름·384차원·세 intent가 기대값과 일치했습니다.
+> 검증 시각은 2026-10-29 KST, 기존 Endpoint 09:30 / 세 팀 10:05입니다.
+
+네 Endpoint에서 반환한 세 문장의 결과는 동일했습니다.
+아래는 실제 응답의 `predictions`에서 추린 값이며, 입력 순서는 위 JSON과 같습니다.
+
+| 입력 | 실제 반환 intent | 최고 cosine similarity | 기대값 비교 |
+|---|---|---|---|
+| 1. 청구 금액·환불 문의 | `billing` | 0.792148 | 일치 |
+| 2. 느린 인터넷·통화 끊김 | `network` | 0.735516 | 일치 |
+| 3. 구독 취소·계정 종료 | `cancellation` | 0.740036 | 일치 |
+
+`model`은 `sentence-transformers/all-MiniLM-L6-v2`, `embedding_dimension`은 **384**였습니다.
+무인증 요청은 네 Endpoint 모두 **401**, 빈 `texts`는 모두 **424(내부 모델 400)**로 거부했습니다.
+이는 인증·입력 오류 거부 검증의 통과이며 정상 추론 실패가 아닙니다.
+고정된 영어 예제의 기능 검증으로, 전체 정확도·SLO나 한국어 품질 평가를 의미하지 않습니다.
+
 요청은 1~16개의 영어 문장으로 구성하며, 각 문장은 비어 있지 않고 2,000자 이하여야 합니다.
 [동일한 요청 파일](https://github.com/daeungo1/azure-llm-mlops/blob/main/samples/tickets.json)과
-[팀별 실제 Endpoint 검증 결과](docs/deployment-status.md#팀별-hf-cpu-online-endpoint)를 함께 확인합니다.
+[Endpoint별 실제 호출 결과](docs/deployment-status.md#endpoint-호출-검증-요약)를 함께 확인합니다.
 
 > [!WARNING]
 > 이 모델은 생성형 LLM이나 한국어 품질 검증 모델이 아닙니다.

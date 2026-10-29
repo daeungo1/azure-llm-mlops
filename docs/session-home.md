@@ -15,11 +15,24 @@ hide:
 Azure ML의 주요 기능과 실제 자산·실행 근거를 도식으로 정리한 기술 문서입니다.
 
 [MLOps 개요 보기](01-overview.md){ .md-button .md-button--primary }
-[실제 검증 기록](deployment-status.md){ .md-button }
+[Endpoint 호출 결과](deployment-status.md#endpoint-호출-검증-요약){ .md-button }
 
 <p class="session-meta">Azure Machine Learning · Korea Central · 합성 데이터</p>
 
 </div>
+
+!!! success "실제 Endpoint 호출 검증 완료: 정상 요청 12/12 성공"
+
+    기존 Endpoint와 팀 1·2·3, **4개 Endpoint 모두 실제 인증 요청에 HTTP 200**을 반환했습니다.
+    각 Endpoint에 세 문장이 담긴 요청을 3회씩 전송했으며,
+    `billing`·`network`·`cancellation` 분류와 **384차원** 출력이 모두 일치했습니다.
+
+    무인증 요청 401과 빈 입력 424도 네 Endpoint에서 의도대로 거부했습니다.
+    검증 시각은 **2026-10-29 KST, 기존 09:30 / 세 팀 10:05**입니다.
+    상시 상태 표시나 전체 모델 품질 평가가 아니라 해당 시각의 고정 영어 예제 호출 결과입니다.
+
+    [실제 반환 결과 보기](08-serving.md#실제-응답-검증-결과) ·
+    [Endpoint별 상세 결과](deployment-status.md#endpoint-호출-검증-요약)
 
 ## 한 장으로 보는 데모
 
