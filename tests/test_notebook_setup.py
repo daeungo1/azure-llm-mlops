@@ -33,7 +33,11 @@ def test_sample_uses_team_config_and_exact_existing_training_source():
     assert "telco-churn-shared/versions/1" in source
     assert "kt-shared-cpu/versions/1" in source
     assert "enable_model_registration = False" in source
-    assert "os.environ['AZURE_CLIENT_ID'] = config['notebook_identity_client_id']" in source
+    connect = next(cell for cell in notebook["cells"] if cell["id"] == "connect")
+    connection_code = ast.unparse(ast.parse("".join(connect["source"])))
+    assert (
+        "os.environ['AZURE_CLIENT_ID'] = config['notebook_identity_client_id']" in connection_code
+    )
     assert "subscription_id" not in source
 
 
