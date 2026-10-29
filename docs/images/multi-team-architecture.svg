@@ -67,7 +67,7 @@
     <rect x="32" y="748" width="936" height="116" rx="12" class="box"/>
     <text x="52" y="782" class="heading">비용 확인: Cost Management → Cost analysis → Resource group별 분류</text>
     <text x="52" y="814">팀별 RG 비용과 공통 Registry backing RG 비용을 분리해서 확인</text>
-    <text x="52" y="846" class="small">청구 반영 지연 가능 · 태그는 권한 경계가 아님 · max 1은 학습 VM 상한이며 서빙은 별도 과금</text>
+    <text x="52" y="846" class="small">청구 반영 지연 가능 · Tags는 권한 경계가 아님 · max 1은 학습 VM 상한이며 서빙은 별도 과금</text>
   </g>
   <g class="node">
     <rect x="32" y="896" width="936" height="122" rx="12" fill="#f1f5fa" stroke="#b8c9da"/>

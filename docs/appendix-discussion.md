@@ -109,7 +109,7 @@ Catalog·Schema를 과제 경계에 대응시키는 방식은 Azure RG 격리와
 외부 Slurm 클라이언트의 인증·모델 파일 등록·조회 경로는 별도 검증 대상입니다.
 
 Unity Catalog에서 지원하는 lineage 기능이 외부 학습 과정 전체를 자동 수집한다는 뜻은 아닙니다.
-데이터·Job·코드·이미지와의 연결을 어떤 API와 태그로 남길지 정해야 합니다.
+데이터·Job·코드·이미지와의 연결을 어떤 API와 Tags로 남길지 정해야 합니다.
 이 대안도 Slurm을 Databricks Compute로 이전하는 구성과 구분합니다.
 
 ![공통 UC Metastore와 과제별 Workspace·Catalog 바인딩·Identity·Storage의 10개 과제 격리 뷰](images/ktc-case/07-plan-c-project-isolation.svg)
@@ -132,7 +132,7 @@ Databricks Compute를 쓰지 않는다는 이유만으로 전체 비용이 없�
 
 Azure가 공유 VM 비용을 Slurm 과제별로 자동 분할 청구하는 구조는 아닙니다.
 Job 사용량과 실제 청구 금액을 연결하는 배분 규칙이 필요합니다.
-태그와 Compute의 최대 노드 수는 비용 식별·자원 제한 수단이지 금액 기준의 강제 예산 한도가 아닙니다.
+Tags와 Compute의 최대 노드 수는 비용 식별·자원 제한 수단이지 금액 기준의 강제 예산 한도가 아닙니다.
 
 ## 4. 실제 데모가 확인한 것과 남은 것
 

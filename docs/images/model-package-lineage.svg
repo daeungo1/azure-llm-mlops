@@ -7,7 +7,7 @@
   </defs>
   <rect width="1080" height="470" rx="16" fill="#fff"/>
   <text x="36" y="46" class="title">모델은 파일 하나가 아니라 출처가 있는 실행 패키지</text>
-  <g class="node"><rect x="36" y="110" width="270" height="214" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="56" y="151" class="heading">완료된 학습 Job</text><text x="56" y="193">Data · 코드 · 환경</text><text x="56" y="231">파라미터 · 평가 근거</text><text x="56" y="287" class="small">Job의 Inputs / Outputs 확인</text></g>
+  <g class="node"><rect x="36" y="110" width="270" height="214" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="56" y="151" class="heading">완료된 학습 Job</text><text x="56" y="193">Data · Code · Environment</text><text x="56" y="231">Params · Metrics</text><text x="56" y="287" class="small">Job의 Inputs / Outputs 확인</text></g>
   <g class="node"><rect x="394" y="110" width="292" height="214" rx="12" fill="#fff" stroke="#8daec6"/><text x="414" y="151" class="heading">MLflow package</text><text x="414" y="191">모델 파일 · MLmodel</text><text x="414" y="229">환경 정의 · signature</text><text x="414" y="267">input example</text><text x="414" y="302" class="small">파일 + 실행 계약</text></g>
   <g class="node"><rect x="774" y="110" width="270" height="214" rx="12" fill="#edf8f3" stroke="#89b9a2"/><text x="794" y="151" class="heading">Model versions</text><text x="794" y="193">v1 / Logistic</text><text x="794" y="231">v2 / Random Forest</text><text x="794" y="287" class="small">완료 후 SDK로 등록</text></g>
   <path class="edge" d="M306 217H394M686 217H774"/>

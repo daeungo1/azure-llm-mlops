@@ -45,12 +45,12 @@ EXAMPLES = {
     ),
     "05-mlflow": (
         Example(
-            "Train 실행에 지표와 평가 산출물 기록",
+            "Train Run에 Metrics·Artifacts 기록",
             "demo/training.py",
             "metrics = {",
             8,
             (
-                ("mlflow.log_metrics(metrics)", "동일 평가 조건의 지표를 run에 기록"),
+                ("mlflow.log_metrics(metrics)", "동일 평가 조건의 Metrics를 Run에 기록"),
                 (
                     'mlflow.log_figure(display.figure_, "evaluation/confusion_matrix.png")',
                     "오류 분포도 함께 보관",
@@ -138,7 +138,7 @@ MESSAGES = {
     "01-overview": "DevOps가 기반, MLOps는 데이터·실험·모델을 추가",
     "02-architecture": "Workspace = 협업·권한·추적의 경계",
     "03-data": "Job은 이름:버전을 보고, 데이터는 Storage에서 읽음",
-    "04-pipelines": "Pipeline = 독립 실행 가능한 ML 워크플로",
+    "04-pipelines": "Pipeline = 독립 실행 가능한 ML Workflow",
     "05-mlflow": "Experiment로 묶고, Job으로 실행하고, MLflow로 근거를 기록",
     "06-models": "모델은 파일 하나가 아니라 배포 가능한 패키지",
     "07-environments": "Environment = 실행 조건의 버전",

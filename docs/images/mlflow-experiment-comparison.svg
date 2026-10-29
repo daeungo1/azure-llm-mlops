@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 750" role="img" aria-labelledby="title desc">
-  <title id="title">Azure ML의 Experiment, Pipeline Job, 자식 Job과 MLflow 기록</title>
-  <desc id="desc">Experiment kt-telco-churn이 두 Pipeline 실행을 묶습니다. 각 Pipeline 부모 Job 아래 Prepare와 Train 자식 Job이 실행됩니다. MLflow 파라미터, 지표, 태그와 산출물은 학습 코드가 실행된 Train에 기록하며 부모로 자동 집계하지 않습니다. Studio에서 실행 조건과 결과를 비교하고 등록 모델의 원본 실행을 확인합니다.</desc>
+  <title id="title">Azure ML의 Experiment, Parent Pipeline Job, Child Job과 MLflow 기록</title>
+  <desc id="desc">Experiment kt-telco-churn이 두 Pipeline 실행을 묶습니다. 각 Parent Pipeline Job 아래 Prepare와 Train Child Job이 실행됩니다. MLflow Parameters, Metrics, Tags와 Artifacts는 학습 코드가 실행된 Train에 기록하며 Parent Job으로 자동 집계하지 않습니다. Studio에서 실행 조건과 결과를 비교하고 등록 모델의 원본 실행을 확인합니다.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
     <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
@@ -11,45 +11,45 @@
   <g class="node">
     <rect x="28" y="100" width="1024" height="96" rx="12" fill="#eef6ff" stroke="#83a9ca"/>
     <text x="52" y="139" class="heading">Experiment · kt-telco-churn</text>
-    <text x="52" y="172">같은 목적의 실행을 묶음 · 이름·상태·태그로 찾고 실행 조건과 결과를 비교</text>
+    <text x="52" y="172">같은 목적의 Run을 묶음 · 이름·상태·Tags로 찾고 실행 조건과 결과를 비교</text>
   </g>
   <path class="edge" d="M274 196V230M806 196V230"/>
   <g class="node">
     <rect x="28" y="230" width="492" height="178" rx="12" fill="#fff" stroke="#8daec6"/>
-    <text x="48" y="266" class="heading">Pipeline 부모 Job A · logistic</text>
-    <text x="48" y="296" class="small">전체 실행 상태 · graph · 입력과 출력</text>
+    <text x="48" y="266" class="heading">Parent Pipeline Job A · logistic</text>
+    <text x="48" y="296" class="small">전체 실행 상태 · Graph · Inputs/Outputs</text>
     <rect x="48" y="320" width="168" height="64" rx="8" fill="#eef6ff" stroke="#83a9ca"/>
-    <text x="66" y="346">Prepare 자식 Job</text>
-    <text x="66" y="370" class="small">데이터 준비</text>
+    <text x="66" y="346">Prepare</text>
+    <text x="66" y="370" class="small">Child Job</text>
     <path class="edge" d="M216 352H272"/>
     <rect x="272" y="320" width="224" height="64" rx="8" fill="#eaf7f0" stroke="#63a58a"/>
-    <text x="292" y="346">Train 자식 Job</text>
-    <text x="292" y="370" class="small">학습 + MLflow 기록</text>
+    <text x="292" y="346">Train</text>
+    <text x="292" y="370" class="small">Child Job · MLflow</text>
   </g>
   <g class="node">
     <rect x="560" y="230" width="492" height="178" rx="12" fill="#fff" stroke="#8daec6"/>
-    <text x="580" y="266" class="heading">Pipeline 부모 Job B · forest</text>
+    <text x="580" y="266" class="heading">Parent Pipeline Job B · forest</text>
     <text x="580" y="296" class="small">동일한 Data v1 · holdout · seed 42</text>
     <rect x="580" y="320" width="168" height="64" rx="8" fill="#eef6ff" stroke="#83a9ca"/>
-    <text x="598" y="346">Prepare 자식 Job</text>
-    <text x="598" y="370" class="small">데이터 준비</text>
+    <text x="598" y="346">Prepare</text>
+    <text x="598" y="370" class="small">Child Job</text>
     <path class="edge" d="M748 352H804"/>
     <rect x="804" y="320" width="224" height="64" rx="8" fill="#eaf7f0" stroke="#63a58a"/>
-    <text x="824" y="346">Train 자식 Job</text>
-    <text x="824" y="370" class="small">학습 + MLflow 기록</text>
+    <text x="824" y="346">Train</text>
+    <text x="824" y="370" class="small">Child Job · MLflow</text>
   </g>
   <path class="edge" d="M384 384V445M916 384V445"/>
   <g class="node">
     <rect x="28" y="445" width="1024" height="112" rx="12" fill="#eaf7f0" stroke="#63a58a"/>
-    <text x="52" y="481" class="heading">각 Train 실행에 연결된 MLflow 기록</text>
+    <text x="52" y="481" class="heading">각 Train Run에 연결된 MLflow 기록</text>
     <text x="52" y="513">Params · Metrics · Tags · Artifacts (평가 이미지·JSON·MLflow 모델 패키지)</text>
-    <text x="52" y="540" class="small">기록한 학습 실행에서 확인 · 자식 지표를 부모 Pipeline으로 자동 집계하지 않음</text>
+    <text x="52" y="540" class="small">Train Child Job에서 확인 · Child Metrics를 Parent Job으로 자동 집계하지 않음</text>
   </g>
   <path class="edge" d="M540 557V590"/>
   <g class="node">
     <rect x="28" y="590" width="1024" height="94" rx="12" fill="#fff8e9" stroke="#d6b36d"/>
     <text x="52" y="628" class="heading">Studio: 실행 찾기 → 조건·결과 비교 → 등록 모델의 원본 실행 확인</text>
-    <text x="52" y="659" class="small">지표 비교는 Train 실행에서 · Model 버전 등록은 Pipeline 완료 후 SDK에서 수행</text>
+    <text x="52" y="659" class="small">Metrics 비교는 Train Run에서 · Model 버전 등록은 Pipeline 완료 후 SDK에서 수행</text>
   </g>
-  <text x="28" y="723" class="small">알고리즘 비교는 한 사례 · 데이터·파라미터·코드·환경 변경도 추적 가능 · 최신 버전 ≠ 최고 품질</text>
+  <text x="28" y="723" class="small">알고리즘 비교는 한 사례 · Data·Parameters·Code·Environment 변경도 추적 가능 · 최신 버전 ≠ 최고 품질</text>
 </svg>

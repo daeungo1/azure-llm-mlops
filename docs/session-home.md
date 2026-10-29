@@ -80,9 +80,9 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 
 ## 팀별 격리와 공용 자산
 
-![독립된 팀 RG 세 개와 공용 Registry의 자산 공유 및 비용 경계](images/multi-team-architecture.svg)
+![독립된 팀 RG 세 개와 공용 Registry의 자산 공유 및 비용 경계](images/multi-team-architecture.svg?v=20261029-terminology)
 
-[도식 원본 크게 보기](images/multi-team-architecture.svg)
+[도식 원본 크게 보기](images/multi-team-architecture.svg?v=20261029-terminology)
 
 약 10개 팀 확장 논의를 3개 팀으로 축소했습니다.
 기존 검증 Workspace를 유지하면서 팀별 RG·Workspace·Storage·Compute를 별도로 배포했습니다.

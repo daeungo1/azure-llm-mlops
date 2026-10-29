@@ -8,9 +8,9 @@ ms.date: 2026-10-28
 
 ## 1. MLOps에서 Azure ML을 활용하는 이유
 
-![DevOps 기반에 데이터·실험·환경·모델 관리를 추가하는 MLOps](docs/images/mlops-overview.svg)
+![DevOps 기반에 데이터·실험·환경·모델 관리를 추가하는 MLOps](docs/images/mlops-overview.svg?v=20261029-terminology)
 
-[SVG 원본 크게 보기](docs/images/mlops-overview.svg)
+[SVG 원본 크게 보기](docs/images/mlops-overview.svg?v=20261029-terminology)
 
 MLOps는 모델을 한 번 학습하는 작업을 넘어, 어떤 데이터·코드·환경으로 만들었는지
 기록하고 평가한 모델을 서비스하며 운영 결과를 다음 개선에 연결하는 활동입니다.
@@ -63,12 +63,12 @@ public 접근과 익명 접근은 다릅니다.
 | Azure ML Workspace | 데이터·실험·모델·Job의 관리 공간 | 팀별 Studio와 실행 이력 | 팀별 전용 Workspace |
 | Azure ML Registry | 여러 Workspace가 참조하는 ML 자산 카탈로그 | 동일 Model·Environment·Component 버전의 공유 | 공통 Registry 및 관리형 backing RG |
 | Storage Account / Datastore | 실제 데이터·모델·Job 파일 저장과 연결 | 자기 팀 데이터 읽기와 다른 팀 접근 거부 | 팀별 전용 Storage |
-| ACR | 컨테이너 실행 환경 이미지 저장 | Environment 이미지·태그·digest | 팀 전용 ACR, Registry backing ACR은 공통 |
+| ACR | 컨테이너 실행 환경 이미지 저장 | Environment 이미지·Tag·digest | 팀 전용 ACR, Registry backing ACR은 공통 |
 | AML Compute cluster | 학습·검증 Job과 환경 이미지 빌드 | CPU 노드의 생성·종료와 Job 실행 | 팀 클러스터 최소 0 / 최대 1대 |
 | Key Vault | Workspace 의존 비밀 정보 보관 | RBAC와 private 접근 경로 | 팀별 전용 Vault |
 | Managed Network / VNet·Private Endpoint | AML에서 보호된 의존 리소스로 접근 | 기존 데모는 Managed Network, 새 팀은 전용 VNet·Private Endpoint | 팀별 VNet·NAT·DNS·연결 비용 |
 | NSP | Storage의 public 네트워크 접근 경계 | Enforced 규칙과 운영자 IP 허용 | 팀별 Storage 경계, 데이터 RBAC 별도 |
-| Managed Identity / RBAC | 자격 증명 없이 실행 주체별 권한 제한 | Compute identity의 자기 Storage 권한 | 리소스 범위별 권한, 태그와 구분 |
+| Managed Identity / RBAC | 자격 증명 없이 실행 주체별 권한 제한 | Compute identity의 자기 Storage 권한 | 리소스 범위별 권한, Tags와 구분 |
 | Managed Online Endpoint / Deployment | 인증된 실시간 추론 API와 모델 실행 | HF 요청·응답·오류·배포 상태 | 기존 Workspace와 팀별 상시 CPU 서빙 |
 | Application Insights / Log Analytics | 요청 관측·로그 수집과 조회 | 호출 흔적·컨테이너 로그·보존 설정 | 팀별 수집·보존 비용 |
 | Event Grid system topic / 기본 알림 | Azure 서비스가 생성하는 이벤트·관측 의존 기능 | 실제 구독·연결 여부 | 이름만 보고 불필요하다고 삭제하지 않음 |
@@ -79,9 +79,9 @@ ACR은 컨테이너 이미지를 저장합니다. Registry도 자체 backing Sto
 
 ### 2.2 팀별 RG와 공용 Registry
 
-![세 팀의 독립 RG·Workspace·Storage·Compute와 공용 Azure ML Registry 자산 참조 및 비용 분리](docs/images/multi-team-architecture.svg)
+![세 팀의 독립 RG·Workspace·Storage·Compute와 공용 Azure ML Registry 자산 참조 및 비용 분리](docs/images/multi-team-architecture.svg?v=20261029-terminology)
 
-[팀별 격리·Registry 공유 SVG 크게 보기](docs/images/multi-team-architecture.svg)
+[팀별 격리·Registry 공유 SVG 크게 보기](docs/images/multi-team-architecture.svg?v=20261029-terminology)
 
 | 구분 | Resource Group | Workspace / Registry | 비용 분류 |
 |---|---|---|---|
@@ -100,7 +100,7 @@ Workspace 이름만 나누는 것이 아니라 Storage·Key Vault·ACR·로그�
 Cost Management의 Cost analysis에서 Resource group으로 묶어 팀 직접 비용을 확인합니다.
 Registry가 자동 생성하는 관리형 RG의 Storage·ACR 비용은 별도 공통 비용입니다.
 이 비용이 팀 RG로 자동 배분되는 것은 아닙니다.
-`team`·`costCenter` 태그는 비용 식별을 돕지만 권한 경계나 지출 차단 장치는 아닙니다.
+`team`·`costCenter` Tags는 비용 식별을 돕지만 권한 경계나 지출 차단 장치는 아닙니다.
 신규 사용량은 청구 반영 지연이 있어, 조회 결과가 없더라도 비용이 0이라고 단정하지 않습니다.
 
 배포·공유 자산 소비·격리 테스트의 실제 결과는
@@ -147,7 +147,7 @@ Datastores에서 Storage 연결 정보를 확인합니다.
 [Pipeline SVG 원본 크게 보기](docs/images/mlops-pipeline.svg)
 
 학습 결과를 다시 설명하려면 모델 파일뿐 아니라 입력 데이터, 코드,
-파라미터, 실행 환경과 출력의 관계가 필요합니다.
+Parameters, Environment와 Outputs의 관계가 필요합니다.
 Azure ML Job은 실행 이력을 남기고, Pipeline과 Component는 데이터 준비와 학습 단계를 나누어 재사용합니다.
 
 데모는 합성 데이터 v1을 1,125행 학습 / 375행 평가로 나누고,
@@ -160,17 +160,17 @@ AML Pipeline graph는 Prepare → Train이며,
 Environment, Compute와 실행 상태를 따라갑니다.
 Components에서는 준비·학습 단계의 등록 버전을 확인합니다.
 
-## 5. MLflow: Azure ML의 실험·실행·워크플로 연결하기
+## 5. MLflow: Azure ML의 Experiment·Job·Workflow 연결하기
 
-![Experiment 아래 Pipeline 부모 Job과 Prepare·Train 자식 Job, Train의 MLflow 기록과 모델 출처 연결](docs/images/mlflow-experiment-comparison.svg?v=20261029-experiment-management)
+![Experiment 아래 Parent Pipeline Job과 Prepare·Train Child Job, Train의 MLflow 기록과 모델 출처 연결](docs/images/mlflow-experiment-comparison.svg?v=20261029-terminology)
 
-[SVG 원본 크게 보기](docs/images/mlflow-experiment-comparison.svg?v=20261029-experiment-management)
+[SVG 원본 크게 보기](docs/images/mlflow-experiment-comparison.svg?v=20261029-terminology)
 
 Azure ML의 실험 관리는 알고리즘의 점수를 비교하는 데서 끝나지 않습니다.
 같은 목적의 실행을 묶고, 실행 조건과 실패 원인을 확인하고,
 평가 근거가 있는 결과를 모델 버전으로 남기는 과정입니다.
 Experiments·Jobs·Pipelines는 서로 다른 학습 엔진이 아니라 이 과정을 보는 관점이며,
-MLflow가 각 실행의 파라미터·지표·산출물 기록을 담당합니다.
+MLflow가 각 Run의 Parameters·Metrics·Artifacts 기록을 담당합니다.
 
 ### Experiments · Jobs · Pipelines는 무엇이 다른가
 
@@ -178,10 +178,10 @@ MLflow가 각 실행의 파라미터·지표·산출물 기록을 담당합니�
 |---|---|---|
 | Experiments | 같은 목적의 Job·Run을 묶는 논리적 실험 단위 | `kt-telco-churn`에 모인 학습 이력. 실험 자체가 Compute나 학습 코드는 아님 |
 | Jobs | 한 번의 실행과 그 상태·입출력·코드·환경·Compute·로그 | 어떤 데이터·환경으로 실행했고 어디에서 실패했는지. Pipeline과 각 단계 실행도 Job |
-| Pipelines | 단계와 데이터 의존성을 연결하는 ML 워크플로 | Prepare → Train. 제출하면 부모 Pipeline Job과 단계별 자식 Job이 생성됨 |
+| Pipelines | 단계와 데이터 의존성을 연결하는 ML Workflow | Prepare → Train. 제출하면 Parent Pipeline Job과 단계별 Child Job이 생성됨 |
 | Components | Pipeline 단계의 재사용 가능한 정의와 버전 | `prepare_telco_data:2`, `train_telco_classifier:2`. 정의와 실제 실행 이력을 구분 |
 | MLflow Tracking | Run에 연결된 Params·Metrics·Tags·Artifacts | 데이터 버전·seed·행 수, accuracy·F1·ROC AUC, confusion matrix·모델 패키지 |
-| Models | 실행 산출물 중 이름·버전으로 등록한 모델 자산 | `telco-churn-classifier:1/2`에서 원본 Job과 파일 확인. 기록된 모든 Run이 자동 등록되는 것은 아님 |
+| Models | Run Artifacts 중 이름·버전으로 등록한 Model Asset | `telco-churn-classifier:1/2`에서 원본 Job과 파일 확인. 기록된 모든 Run이 자동 등록되는 것은 아님 |
 
 Studio에서는 Jobs의 실험 목록·실험별 보기와 개별 Job 상세를 오가며 이 정보를 확인합니다.
 화면의 탭 이름·배치는 UI 버전에 따라 달라질 수 있지만,
@@ -193,38 +193,38 @@ Run은 MLflow의 추적 단위입니다. Azure ML 학습 Job 안에서 기록할
 외부 PC·다른 Compute의 실행을 Workspace tracking URI에 기록할 수도 있습니다.
 Run이 보인다는 사실만으로 Azure ML Compute에서 학습했다고 판단하지 않습니다.
 
-### 부모 Pipeline과 학습 Run을 구분해서 보기
+### Parent Pipeline Job과 Train Child Job 구분하기
 
 `kt-telco-churn`에는 `telco-logistic-data-v1`, `telco-forest-data-v1`이라는
-두 Pipeline 실행이 제출됩니다. 각각 Prepare 자식 Job이 데이터를 나누고,
-Train 자식 Job이 모델을 학습하면서 MLflow로 평가 근거를 기록합니다.
+두 Pipeline 실행이 제출됩니다. 각각 Prepare Child Job이 데이터를 나누고,
+Train Child Job이 모델을 학습하면서 MLflow로 평가 근거를 기록합니다.
 
-부모 Pipeline에서는 전체 상태·graph·단계 연결을 확인하고,
-**학습 지표는 `mlflow.log_metrics()`를 호출한 Train 자식 Job에서 확인합니다.**
-자식의 지표가 부모에 자동 합산·복사되는 것으로 해석하지 않습니다.
-부모 실행 목록에 지표가 보이지 않으면 graph에서 Train을 열어야 합니다.
-두 결과를 비교할 때도 동일한 평가 지표가 기록된 Train 실행을 대상으로 합니다.
+Parent Pipeline Job에서는 전체 상태·Graph·단계 연결을 확인하고,
+**학습 Metrics는 `mlflow.log_metrics()`를 호출한 Train Child Job에서 확인합니다.**
+Child Job의 Metrics가 Parent Job에 자동 합산·복사되는 것으로 해석하지 않습니다.
+Parent Job 목록에 Metrics가 보이지 않으면 Graph에서 Train을 열어야 합니다.
+두 결과를 비교할 때도 동일한 Metrics가 기록된 Train 실행을 대상으로 합니다.
 
 ### Studio에서 활용하는 실험 관리 기능
 
 | 확인할 질문 | 활용할 기능·정보 | 이 데모의 예 |
 |---|---|---|
-| 원하는 실행을 어떻게 찾는가 | Experiment로 묶고 이름·상태·태그로 실행을 식별·필터링 | 부모 Job의 `algorithm`, `data_version` 태그. 학습 Run에는 별도의 MLflow 태그·Params 기록 |
+| 원하는 실행을 어떻게 찾는가 | Experiment로 묶고 이름·상태·Tags로 실행을 식별·필터링 | Parent Job의 `algorithm`, `data_version` Tags. 학습 Run에는 별도의 MLflow Tags·Params 기록 |
 | 무엇이 달라졌는가 | Params와 입력 자산·Environment·코드 비교 | `algorithm`, `data_version`, `seed`, `holdout_fraction`, 학습·평가 행 수 |
 | 얼마나 좋아졌고 어떤 오류가 남았는가 | Metrics와 평가 Artifacts 함께 확인 | accuracy·F1·ROC AUC와 `evaluation/confusion_matrix.png`, `evaluation/metrics.json` |
 | 왜 실패하거나 오래 걸렸는가 | Job 상태·실행 시간·Compute·Outputs + logs 확인 | 데이터 준비, 환경 준비, 학습 코드 중 문제가 생긴 단계부터 조사 |
-| 어떤 결과를 다음 단계에 사용할 것인가 | Run 산출물과 등록 Model의 원본 Job 연결 | MLflow 패키지의 signature·입력 예제 확인 후 명시적 Model 버전 참조 |
+| 어떤 결과를 다음 단계에 사용할 것인가 | Run Artifacts와 등록 Model의 원본 Job 연결 | MLflow 패키지의 signature·input example 확인 후 명시적 Model 버전 참조 |
 
 실행의 입력 데이터·Environment는 Azure ML Job 정보로,
-평가 지표·이미지·MLflow 모델은 학습 코드가 남긴 기록으로 확인합니다.
+Metrics·이미지·MLflow Model은 학습 코드가 남긴 기록으로 확인합니다.
 모든 정보가 MLflow에 자동 기록되는 것은 아닙니다.
-이 데모는 전체 하이퍼파라미터 자동 로깅 대신 필요한 항목을 명시적으로 기록합니다.
+이 데모는 전체 Hyperparameters의 autologging 대신 필요한 항목을 명시적으로 기록합니다.
 
 Studio에서 여러 실행을 선택해 비교하고, 필요한 경우 MLflow 검색 API로
 Params·Metrics·Tags를 조회할 수 있습니다.
 공식 문서의 확장된 **Jobs·Models 비교 화면은 preview 기능**으로 안내되어 있으므로
 사용 중인 Studio에서 활성화 여부를 확인합니다.
-비교 화면 사용 여부와 관계없이 개별 Train Job의 지표·산출물을 확인할 수 있습니다.
+비교 화면 사용 여부와 관계없이 개별 Train Job의 Metrics·Artifacts를 확인할 수 있습니다.
 
 ### 알고리즘 비교는 실험 관리의 한 가지 사례
 
@@ -233,7 +233,7 @@ Logistic Regression과 작은 Random Forest의 기록을 비교합니다.
 두 Pipeline이 완료되면 SDK에서 모델 v1/v2를 등록합니다.
 모델 등록은 graph 밖에서 수행하며, 자동 최적 모델 선택·승격은 구현하지 않았습니다.
 
-같은 구조로 하이퍼파라미터, 데이터 버전, 전처리·코드, 실행 환경 변경의 영향도 추적할 수 있습니다.
+같은 구조로 Hyperparameters, Data version, 전처리·코드, Environment 변경의 영향도 추적할 수 있습니다.
 이들은 기능 활용 범위이며 모두 이번 데모에서 별도로 비교 실행한 것은 아닙니다.
 Data v2를 사용하는 외부 CPU 학습은 `kt-external-mlflow`로 구분하며,
 평가 조건이 다르므로 v1 실험과 지표 숫자만으로 성능 순위를 매기지 않습니다.
@@ -244,9 +244,9 @@ Data v2를 사용하는 외부 CPU 학습은 `kt-external-mlflow`로 구분하�
 
 ## 6. Models: 파일 보관을 넘어 배포 후보 관리하기
 
-![완료된 학습 Job에서 MLflow 패키지와 등록 모델 버전으로 이어지는 출처](docs/images/model-package-lineage.svg)
+![완료된 학습 Job에서 MLflow 패키지와 등록 모델 버전으로 이어지는 출처](docs/images/model-package-lineage.svg?v=20261029-terminology)
 
-[SVG 원본 크게 보기](docs/images/model-package-lineage.svg)
+[SVG 원본 크게 보기](docs/images/model-package-lineage.svg?v=20261029-terminology)
 
 모델 등록은 실행 결과에 이름과 버전을 부여하고,
 원본 학습 Job 및 평가 근거를 따라갈 수 있게 하는 단계입니다.
@@ -277,7 +277,7 @@ AML이 기본 이미지에 의존성을 설치한 Custom 이미지를 실제 빌
 이 빌드는 GitHub CI나 ACR Tasks가 아니라 AML이 관리합니다.
 
 확인 위치: Studio의 Environments에서 버전·의존성과 build log를,
-Azure Portal의 ACR Repositories에서 이미지 태그와 digest를 확인합니다.
+Azure Portal의 ACR Repositories에서 이미지 Tag와 digest를 확인합니다.
 [빌드 Job과 이미지 검증 근거](docs/deployment-status.md#acr-custom-이미지-빌드-검증)를 함께 참고하세요.
 
 ## 8. Managed Online Endpoint: 모델을 인증된 API로 제공하기
@@ -292,7 +292,7 @@ Endpoint는 호출 주소를 제공하고 Deployment는 모델·실행 환경·�
 
 사용 모델은 Hugging Face의
 [`sentence-transformers/all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)입니다.
-약 22.7M 파라미터의 영어 문장 임베딩 모델로 문장을 384차원 벡터로 바꿉니다.
+약 22.7M Parameters를 갖는 영어 문장 Embedding 모델로 문장을 384차원 벡터로 바꿉니다.
 사전학습 모델을 추가 학습하지 않고, 대표 문장과의 cosine similarity로
 상담 문장을 `billing`, `network`, `cancellation` 중 하나로 분류합니다.
 고정 revision의 파일을 등록해 사용하므로 추론 시 HF 다운로드가 필요하지 않습니다.
@@ -376,9 +376,9 @@ Test의 Sample inference Input에는 아래 JSON을 붙여 넣습니다.
 
 ## 10. 보안·모니터링·비용: MLOps 운영 기능 활용하기
 
-![권한 관리·상태 모니터링·비용 관리 기능과 Private 구성 지원](docs/images/operating-boundaries.svg)
+![권한 관리·상태 모니터링·비용 관리 기능과 Private 구성 지원](docs/images/operating-boundaries.svg?v=20261029-terminology)
 
-[SVG 원본 크게 보기](docs/images/operating-boundaries.svg)
+[SVG 원본 크게 보기](docs/images/operating-boundaries.svg?v=20261029-terminology)
 
 Azure ML에서는 모델 학습·배포뿐 아니라 **누가 사용할 수 있는지, 서비스가 어떻게 동작하는지,
 어디에 비용이 발생하는지**를 함께 관리합니다.
@@ -387,7 +387,7 @@ Azure ML에서는 모델 학습·배포뿐 아니라 **누가 사용할 수 있�
 |---|---|---|
 | 인증·권한 관리 | Entra ID와 RBAC로 사용자·팀의 자산·작업·배포 권한을 구분하고, Managed Identity로 학습·서빙에서 비밀번호 없이 Storage·ACR에 접근 | Azure Portal의 Access control (IAM), Studio의 자산·Jobs·Endpoints |
 | 상태 모니터링 | Endpoint의 요청 수·지연·오류 지표와 컨테이너 로그를 확인하고, Azure Monitor 알림과 연계 | Endpoints의 Logs/Monitoring, Application Insights, Log Analytics |
-| 비용 관리 | 학습 Compute 자동 축소, 워크로드별 SKU·인스턴스 수 선택, RG·태그별 사용량 분석과 예산 알림 활용 | Studio의 Compute·Endpoints, Azure Cost Management |
+| 비용 관리 | 학습 Compute 자동 축소, 워크로드별 SKU·인스턴스 수 선택, RG·Tags별 사용량 분석과 예산 알림 활용 | Studio의 Compute·Endpoints, Azure Cost Management |
 
 데모에서는 Entra 인증과 실행 identity별 접근 제어, 실제 Endpoint 응답과 요청 지표·로그,
 팀별 RG 비용 조회와 학습 Compute의 유휴 시 0대 축소를 확인했습니다.
@@ -586,7 +586,7 @@ Data는 Workspace-to-Registry 공유 API로 복제하며, 현재 SDK에서 exper
 팀별 결과는 `local/<workspace>/online-verification.json`에 따로 저장하므로
 기존 검증 Workspace의 `local/state.json`을 덮어쓰지 않습니다.
 실행 증적과 공유 완료 단계는 Git 제외 대상인 `local/multiteam.json`에 남습니다.
-각 완료 Job의 자식 실행 로그를 내려받아 검증한 보고서는
+각 완료 Job의 Child Job 로그를 내려받아 검증한 보고서는
 `local/<workspace>/<job>/verification.json`에 저장합니다.
 공유 완료 후 재실행할 때도 이 상태 파일을 보존합니다.
 팀 Compute가 0대로 줄어도 NAT·Private Endpoint·ACR 등의 기본 비용은 계속 발생합니다.

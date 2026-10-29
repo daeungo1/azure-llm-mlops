@@ -35,7 +35,7 @@ ms.date: 2026-10-29
 
 ## 다중 팀 RG와 공용 Registry
 
-팀별 권한·비용 경계를 Workspace 이름이나 태그만으로 구분하지 않고,
+팀별 권한·비용 경계를 Workspace 이름이나 Tags만으로 구분하지 않고,
 Korea Central에 세 개의 전용 Resource Group을 실제 배포했습니다.
 구독 배포 `kt-three-teams`와 공통 RG 배포 `kt-shared-registry`는 Succeeded입니다.
 
@@ -55,7 +55,7 @@ Workspace Private Endpoint는 세 팀 모두 Approved입니다.
 세 팀의 공유 자산 소비 Pipeline과 각 `consume` 노드는 모두 Completed입니다.
 아래 Job 로그와 검증 보고서에서 실제 추론·자기 데이터 읽기·상대 팀 권한 거부를 확인했습니다.
 
-![팀별 RG와 공용 Registry 구조](images/multi-team-architecture.svg)
+![팀별 RG와 공용 Registry 구조](images/multi-team-architecture.svg?v=20261029-terminology)
 
 ### 공통 자산과 네트워크 경계
 
@@ -110,8 +110,8 @@ HF MiniLM을 재학습하지 않습니다.
 세 상대 팀 응답의 오류 코드는 모두 `AuthorizationPermissionMismatch`입니다.
 자기 Blob의 팀 marker 내용도 일치했으며 운영자 토큰 대신 Compute managed identity를 사용했습니다.
 검증은 위 세 방향이며 여섯 방향 전체나 별도 Entra 사용자·그룹의 격리를 검증한 것은 아닙니다.
-실행 증적은 각 자식 Job의 `user_logs/std_log.txt`에 JSON으로 남습니다.
-수집 코드는 실제 자식 로그를 다운로드하고 응답·팀·예측 형태를 다시 검사한 뒤
+실행 증적은 각 Child Job의 `user_logs/std_log.txt`에 JSON으로 남습니다.
+수집 코드는 실제 Child Job 로그를 다운로드하고 응답·팀·예측 형태를 다시 검사한 뒤
 Job별 로컬 `verification.json`과 `multiteam.json`에 기록합니다.
 Pipeline named-output URI가 없어 SDK가 다운로드를 건너뛰는 경우를
 보고서 수집 성공으로 처리하지 않도록 검증했습니다.
@@ -202,7 +202,7 @@ Cost Management의 Cost analysis에서 Resource group으로 그룹화합니다.
 USD 5.59546797727373만 반환되었습니다.
 신규 팀·Registry 관리형 RG의 청구 행 부재는 비용 0의 증거가 아닙니다.
 신규 사용량이 청구 데이터에 반영된 이후 금액을 다시 확인해야 합니다.
-`team`과 `costCenter` 태그는 보조 분류이며 권한 경계나 예산 강제 제한이 아닙니다.
+`team`과 `costCenter` Tags는 보조 분류이며 권한 경계나 예산 강제 제한이 아닙니다.
 max=1도 동시 VM 수 상한일 뿐 금액 한도가 아니며 별도 Budget은 설정하지 않았습니다.
 
 ### 기존 환경 보존과 정리 범위
@@ -368,9 +368,9 @@ Azure Files 조회의 HTTP 403은 별도의 데이터 권한 부족이 원인이
 | File Datastore | 여덟 File share 모두 OAuth 목록 조회 HTTP 200 | 루트 항목은 모두 0개. 학습 데이터는 Blob에 저장되어 있음 |
 | 브라우저 CORS | 네 Storage 모두 `ml.azure.com`과 `portal.azure.com` origin의 Blob OPTIONS HTTP 200 | 브라우저 미리보기의 CORS 전제 확인. 화면 렌더링 검증과는 다름 |
 | MLflow | 외부 run의 FINISHED 상태와 accuracy·F1·ROC AUC 읽기 성공 | 기존 실험 기록을 실제 tracking API로 조회 |
-| 팀 Job 로그 | Team 1의 완료된 `consume` 자식 Job 로그 다운로드 성공 | 상태 목록뿐 아니라 출력 로그 읽기도 확인 |
+| 팀 Job 로그 | Team 1의 완료된 `consume` Child Job 로그 다운로드 성공 | 상태 목록뿐 아니라 출력 로그 읽기도 확인 |
 | 공용 ML Registry | `telco-shared:1`, `kt-shared-cpu:1`, `verify_shared_model:3` 조회 성공 | 공유 자산의 메타데이터 접근 확인 |
-| ACR | 네 ACR 모두 인증된 Repository 목록 조회 성공. 기존 ACR의 이미지 태그·digest 확인 | 팀 ACR 세 개의 목록은 비어 있음. 조회 실패가 아님 |
+| ACR | 네 ACR 모두 인증된 Repository 목록 조회 성공. 기존 ACR의 이미지 Tag·digest 확인 | 팀 ACR 세 개의 목록은 비어 있음. 조회 실패가 아님 |
 | Application Insights·Logs | 네 연결 리소스 조회와 네 Logs workspace의 인증된 KQL 쿼리 성공 | 기존 workspace의 최근 1시간 AppTraces는 0건. 최근 요청 로그의 적재를 확인한 것은 아님 |
 | HF Online Endpoint | 인증된 정상 추론 3회 성공, 무인증 401, 빈 입력 424 | 아래 E2E 검증과 동일 |
 | Key Vault | 네 Vault 모두 Succeeded, public access Disabled 유지 | Portal의 리소스 설정 조회와 로컬에서 비밀 값을 읽는 것은 별개. 로컬 secret 조회는 열지 않음 |
@@ -487,9 +487,9 @@ AML은 MCR 기본 이미지와 Conda 정의로 Dockerfile을 생성하고,
 직접 작성한 Dockerfile이나 ACR Tasks의 `az acr build` 실행 결과는 아닙니다.
 
 아래 매핑은 Completed 이미지 빌드 Job의 `docker build` 명령,
-패키지 설치 내역 및 push digest를 ACR 태그 조회 결과와 대조했습니다.
-ACR 이미지 태그 번호는 AML Environment 버전과 별개이며,
-각 repository의 `latest`도 같은 digest를 가리키지만 변경 가능한 태그입니다.
+패키지 설치 내역 및 push digest를 ACR Tag 조회 결과와 대조했습니다.
+ACR 이미지 Tag 번호는 AML Environment 버전과 별개이며,
+각 repository의 `latest`도 같은 digest를 가리키지만 변경 가능한 Tag입니다.
 
 | 용도 / AML Environment | ACR repository:tag | 이미지 빌드 Job | 상태 |
 |---|---|---|---|
@@ -517,7 +517,7 @@ HF 서빙 이미지에는 `torch==2.8.0+cpu`, `transformers==4.57.6`,
 런타임 호환성 문제로 현재 학습에는 사용하지 않습니다.
 이미지 빌드 성공과 모델 학습 성공은 별개의 검증 항목입니다.
 
-이미지 태그와 digest는 다음 읽기 전용 명령으로 확인할 수 있습니다.
+이미지 Tag와 digest는 다음 읽기 전용 명령으로 확인할 수 있습니다.
 
 ```powershell
 az acr repository list --name crktmlopsaow7cshia2xmu -o table
