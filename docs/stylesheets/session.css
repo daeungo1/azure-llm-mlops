@@ -3,6 +3,32 @@
   --md-code-font: Consolas, monospace;
   --md-primary-fg-color: #17324d;
   --md-accent-fg-color: #008575;
+  --session-nav-active-bg: #e8f0f7;
+  --session-nav-active-marker: #008575;
+}
+
+[data-md-color-scheme="slate"] {
+  --session-nav-active-bg: #29485f;
+  --session-nav-active-marker: #79d8c6;
+}
+
+.md-nav--primary .md-nav__item--nested > .md-nav > .md-nav__list
+  > .md-nav__item > .md-nav__link {
+  padding-inline-start: 1.2rem;
+}
+.md-nav--primary .md-nav__link--active:not(.md-nav--secondary .md-nav__link) {
+  background-color: var(--session-nav-active-bg);
+  border-radius: .3rem;
+  box-shadow: inset 3px 0 var(--session-nav-active-marker);
+  color: var(--md-default-fg-color);
+  font-weight: 700;
+}
+@media (min-width: 76.25em) {
+  .md-nav--primary > .md-nav__list > .md-nav__item > a.md-nav__link,
+  .md-nav--primary .md-nav__item--nested > .md-nav > .md-nav__list
+    > .md-nav__item > .md-nav__link {
+    padding: .15rem .4rem;
+  }
 }
 
 .md-grid { max-width: 1540px; }
