@@ -51,7 +51,8 @@ markdown_extensions:
       anchor_linenums: true
       pygments_lang_class: true
 extra_css:
-  - stylesheets/session.css
+  # Update the content digest when session.css changes; tests enforce this.
+  - stylesheets/session.css?v=76de9e59a1fc
 nav:
   - 개요: index.md
   - MLOps 개념과 아키텍처:

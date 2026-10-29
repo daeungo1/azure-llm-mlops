@@ -1,3 +1,4 @@
+import hashlib
 import importlib
 import re
 import shutil
@@ -31,6 +32,15 @@ CODE_FILES = (
 
 def test_generator_is_available():
     assert (ROOT / "scripts" / "build_session_site.py").is_file(), "Site generator is missing"
+
+
+def test_stylesheet_url_changes_with_content():
+    css = (ROOT / "docs" / "stylesheets" / "session.css").read_text(encoding="utf-8")
+    digest = hashlib.sha256(css.encode("utf-8")).hexdigest()[:12]
+    config = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
+    assert f"  - stylesheets/session.css?v={digest}\n" in config, (
+        "Update the stylesheet URL content digest to invalidate browser and CDN caches"
+    )
 
 
 @pytest.fixture
