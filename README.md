@@ -160,22 +160,87 @@ AML Pipeline graph는 Prepare → Train이며,
 Environment, Compute와 실행 상태를 따라갑니다.
 Components에서는 준비·학습 단계의 등록 버전을 확인합니다.
 
-## 5. MLflow: 실험을 기록하고 같은 조건에서 비교하기
+## 5. MLflow: Azure ML의 실험·실행·워크플로 연결하기
 
-![동일한 Data v1과 holdout으로 두 MLflow run의 파라미터·지표·산출물 비교](docs/images/mlflow-experiment-comparison.svg)
+![Experiment 아래 Pipeline 부모 Job과 Prepare·Train 자식 Job, Train의 MLflow 기록과 모델 출처 연결](docs/images/mlflow-experiment-comparison.svg?v=20261029-experiment-management)
 
-[SVG 원본 크게 보기](docs/images/mlflow-experiment-comparison.svg)
+[SVG 원본 크게 보기](docs/images/mlflow-experiment-comparison.svg?v=20261029-experiment-management)
 
-실험 추적의 목적은 지표 하나를 저장하는 것이 아니라,
-어떤 조건이 결과를 만들었는지 비교할 수 있게 하는 것입니다.
-MLflow로 파라미터, accuracy·F1·ROC AUC, confusion matrix와 모델 패키지를 기록합니다.
+Azure ML의 실험 관리는 알고리즘의 점수를 비교하는 데서 끝나지 않습니다.
+같은 목적의 실행을 묶고, 실행 조건과 실패 원인을 확인하고,
+평가 근거가 있는 결과를 모델 버전으로 남기는 과정입니다.
+Experiments·Jobs·Pipelines는 서로 다른 학습 엔진이 아니라 이 과정을 보는 관점이며,
+MLflow가 각 실행의 파라미터·지표·산출물 기록을 담당합니다.
 
-데모에서는 같은 데이터 v1과 동일한 holdout을 사용하는 두 학습 결과를 비교합니다.
-데이터나 평가 조건이 다른 실험의 숫자를 곧바로 성능 순위로 해석하지 않습니다.
-버전이 최신이라는 이유만으로 더 좋은 모델이라고 판단하지도 않습니다.
+### Experiments · Jobs · Pipelines는 무엇이 다른가
 
-확인 위치: Jobs의 실험 `kt-telco-churn`에서 두 실행의 Metrics를 비교하고,
-Outputs + logs에서 평가 파일과 MLflow 모델을 확인합니다.
+| 기능 | 관리하는 대상 | 이 데모에서 확인할 것 |
+|---|---|---|
+| Experiments | 같은 목적의 Job·Run을 묶는 논리적 실험 단위 | `kt-telco-churn`에 모인 학습 이력. 실험 자체가 Compute나 학습 코드는 아님 |
+| Jobs | 한 번의 실행과 그 상태·입출력·코드·환경·Compute·로그 | 어떤 데이터·환경으로 실행했고 어디에서 실패했는지. Pipeline과 각 단계 실행도 Job |
+| Pipelines | 단계와 데이터 의존성을 연결하는 ML 워크플로 | Prepare → Train. 제출하면 부모 Pipeline Job과 단계별 자식 Job이 생성됨 |
+| Components | Pipeline 단계의 재사용 가능한 정의와 버전 | `prepare_telco_data:2`, `train_telco_classifier:2`. 정의와 실제 실행 이력을 구분 |
+| MLflow Tracking | Run에 연결된 Params·Metrics·Tags·Artifacts | 데이터 버전·seed·행 수, accuracy·F1·ROC AUC, confusion matrix·모델 패키지 |
+| Models | 실행 산출물 중 이름·버전으로 등록한 모델 자산 | `telco-churn-classifier:1/2`에서 원본 Job과 파일 확인. 기록된 모든 Run이 자동 등록되는 것은 아님 |
+
+Studio에서는 Jobs의 실험 목록·실험별 보기와 개별 Job 상세를 오가며 이 정보를 확인합니다.
+화면의 탭 이름·배치는 UI 버전에 따라 달라질 수 있지만,
+Experiment는 묶음, Job은 실행, Pipeline은 여러 실행 단계의 연결이라는 관계는 같습니다.
+이 데모는 SDK v2의 Pipeline Job을 사용하며 실제 실행 이력은 Jobs의 graph에서 확인합니다.
+Pipeline graph와 Component 재사용의 상세는 Jobs · Pipeline 장에서 이어갑니다.
+
+Run은 MLflow의 추적 단위입니다. Azure ML 학습 Job 안에서 기록할 수도 있고,
+외부 PC·다른 Compute의 실행을 Workspace tracking URI에 기록할 수도 있습니다.
+Run이 보인다는 사실만으로 Azure ML Compute에서 학습했다고 판단하지 않습니다.
+
+### 부모 Pipeline과 학습 Run을 구분해서 보기
+
+`kt-telco-churn`에는 `telco-logistic-data-v1`, `telco-forest-data-v1`이라는
+두 Pipeline 실행이 제출됩니다. 각각 Prepare 자식 Job이 데이터를 나누고,
+Train 자식 Job이 모델을 학습하면서 MLflow로 평가 근거를 기록합니다.
+
+부모 Pipeline에서는 전체 상태·graph·단계 연결을 확인하고,
+**학습 지표는 `mlflow.log_metrics()`를 호출한 Train 자식 Job에서 확인합니다.**
+자식의 지표가 부모에 자동 합산·복사되는 것으로 해석하지 않습니다.
+부모 실행 목록에 지표가 보이지 않으면 graph에서 Train을 열어야 합니다.
+두 결과를 비교할 때도 동일한 평가 지표가 기록된 Train 실행을 대상으로 합니다.
+
+### Studio에서 활용하는 실험 관리 기능
+
+| 확인할 질문 | 활용할 기능·정보 | 이 데모의 예 |
+|---|---|---|
+| 원하는 실행을 어떻게 찾는가 | Experiment로 묶고 이름·상태·태그로 실행을 식별·필터링 | 부모 Job의 `algorithm`, `data_version` 태그. 학습 Run에는 별도의 MLflow 태그·Params 기록 |
+| 무엇이 달라졌는가 | Params와 입력 자산·Environment·코드 비교 | `algorithm`, `data_version`, `seed`, `holdout_fraction`, 학습·평가 행 수 |
+| 얼마나 좋아졌고 어떤 오류가 남았는가 | Metrics와 평가 Artifacts 함께 확인 | accuracy·F1·ROC AUC와 `evaluation/confusion_matrix.png`, `evaluation/metrics.json` |
+| 왜 실패하거나 오래 걸렸는가 | Job 상태·실행 시간·Compute·Outputs + logs 확인 | 데이터 준비, 환경 준비, 학습 코드 중 문제가 생긴 단계부터 조사 |
+| 어떤 결과를 다음 단계에 사용할 것인가 | Run 산출물과 등록 Model의 원본 Job 연결 | MLflow 패키지의 signature·입력 예제 확인 후 명시적 Model 버전 참조 |
+
+실행의 입력 데이터·Environment는 Azure ML Job 정보로,
+평가 지표·이미지·MLflow 모델은 학습 코드가 남긴 기록으로 확인합니다.
+모든 정보가 MLflow에 자동 기록되는 것은 아닙니다.
+이 데모는 전체 하이퍼파라미터 자동 로깅 대신 필요한 항목을 명시적으로 기록합니다.
+
+Studio에서 여러 실행을 선택해 비교하고, 필요한 경우 MLflow 검색 API로
+Params·Metrics·Tags를 조회할 수 있습니다.
+공식 문서의 확장된 **Jobs·Models 비교 화면은 preview 기능**으로 안내되어 있으므로
+사용 중인 Studio에서 활성화 여부를 확인합니다.
+비교 화면 사용 여부와 관계없이 개별 Train Job의 지표·산출물을 확인할 수 있습니다.
+
+### 알고리즘 비교는 실험 관리의 한 가지 사례
+
+이번 데모는 Data v1의 동일한 1,125행 학습 / 375행 holdout과 seed 42를 유지하고,
+Logistic Regression과 작은 Random Forest의 기록을 비교합니다.
+두 Pipeline이 완료되면 SDK에서 모델 v1/v2를 등록합니다.
+모델 등록은 graph 밖에서 수행하며, 자동 최적 모델 선택·승격은 구현하지 않았습니다.
+
+같은 구조로 하이퍼파라미터, 데이터 버전, 전처리·코드, 실행 환경 변경의 영향도 추적할 수 있습니다.
+이들은 기능 활용 범위이며 모두 이번 데모에서 별도로 비교 실행한 것은 아닙니다.
+Data v2를 사용하는 외부 CPU 학습은 `kt-external-mlflow`로 구분하며,
+평가 조건이 다르므로 v1 실험과 지표 숫자만으로 성능 순위를 매기지 않습니다.
+최신 Run이나 최신 모델 버전이라는 이유만으로 더 좋은 모델이라고 판단하지도 않습니다.
+
+[MLflow 실험 조회·비교 공식 문서](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-track-experiments-mlflow?view=azureml-api-2) ·
+[Azure ML Pipeline 개념](https://learn.microsoft.com/en-us/azure/machine-learning/concept-ml-pipelines?view=azureml-api-2)
 
 ## 6. Models: 파일 보관을 넘어 배포 후보 관리하기
 

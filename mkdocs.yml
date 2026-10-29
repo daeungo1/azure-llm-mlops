@@ -61,7 +61,7 @@ nav:
   - Track · Version:
       - 03. Data · Datastore: 03-data.md
       - 04. Environment · ACR: 07-environments.md
-      - 05. MLflow 실험 비교: 05-mlflow.md
+      - 05. MLflow · 실험 관리: 05-mlflow.md
       - 06. Jobs · Pipeline: 04-pipelines.md
       - 07. Model 패키지 · 출처: 06-models.md
   - Serve · Operate:

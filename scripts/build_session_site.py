@@ -36,7 +36,7 @@ CHAPTERS = (
     Chapter(
         "05-mlflow",
         "mlflow-experiment-comparison.svg",
-        "동일한 holdout의 파라미터·지표·산출물 비교.",
+        "Experiments·Jobs·Pipelines의 관계와 MLflow 기반 실행 추적·비교.",
     ),
     Chapter("06-models", "model-package-lineage.svg", "MLflow 패키지와 원본 Job·등록 모델 버전."),
     Chapter(

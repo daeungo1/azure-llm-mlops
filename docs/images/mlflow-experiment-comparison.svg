@@ -1,16 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 500" role="img" aria-labelledby="title desc">
-  <title id="title">동일한 holdout에서 두 MLflow run 비교</title>
-  <desc id="desc">Data v1의 동일한 1125행 train과 375행 holdout으로 Logistic Regression과 Random Forest를 비교합니다. 각 run의 파라미터, 평가 지표, confusion matrix, 모델 패키지를 확인합니다. 데이터 v2의 외부 실험은 직접 순위 비교하지 않습니다.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 750" role="img" aria-labelledby="title desc">
+  <title id="title">Azure ML의 Experiment, Pipeline Job, 자식 Job과 MLflow 기록</title>
+  <desc id="desc">Experiment kt-telco-churn이 두 Pipeline 실행을 묶습니다. 각 Pipeline 부모 Job 아래 Prepare와 Train 자식 Job이 실행됩니다. MLflow 파라미터, 지표, 태그와 산출물은 학습 코드가 실행된 Train에 기록하며 부모로 자동 집계하지 않습니다. Studio에서 실행 조건과 결과를 비교하고 등록 모델의 원본 실행을 확인합니다.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L9 5L1 9" fill="#32658b"/></marker>
     <style>text{font-family:"Segoe UI","Malgun Gothic",sans-serif;fill:#17324d;font-size:19px}.title{font-size:27px;font-weight:700}.heading{font-size:22px;font-weight:700}.small{font-size:17px;fill:#405b72}.edge{fill:none;stroke:#32658b;stroke-width:2;marker-end:url(#arrow)}</style>
   </defs>
-  <rect width="1080" height="500" rx="16" fill="#fff"/>
-  <text x="36" y="46" class="title">실험 비교의 출발점: 같은 데이터와 같은 평가 조건</text>
-  <g class="node"><rect x="230" y="80" width="620" height="90" rx="12" fill="#eef6ff" stroke="#83a9ca"/><text x="254" y="116" class="heading">Data v1 · 같은 stratified holdout</text><text x="254" y="148">train 1,125 / holdout 375 · random seed 42</text></g>
-  <path class="edge" d="M400 170V208H276V232M680 170V208H804V232"/>
-  <g class="node"><rect x="36" y="232" width="480" height="168" rx="12" fill="#fff" stroke="#8daec6"/><text x="60" y="272" class="heading">Run A / Logistic Regression</text><text x="60" y="312">params · accuracy · F1 · ROC AUC</text><text x="60" y="351">confusion matrix · MLflow model</text><text x="60" y="381" class="small">실험: kt-telco-churn</text></g>
-  <g class="node"><rect x="564" y="232" width="480" height="168" rx="12" fill="#fff" stroke="#8daec6"/><text x="588" y="272" class="heading">Run B / Random Forest</text><text x="588" y="312">params · accuracy · F1 · ROC AUC</text><text x="588" y="351">confusion matrix · MLflow model</text><text x="588" y="381" class="small">같은 조건의 지표와 오분류를 함께 비교</text></g>
-  <text x="36" y="444">최신 버전 ≠ 최고 품질 / 작은 지표 차이를 과장하지 않습니다.</text>
-  <text x="36" y="477" class="small">Data v2를 사용한 외부 실험은 평가 조건이 달라 이 순위 비교에서 제외합니다.</text>
+  <rect width="1080" height="750" rx="16" fill="#fff"/>
+  <text x="28" y="44" class="title">Azure ML 실험 관리: 묶고 · 실행하고 · 기록하고 · 비교하기</text>
+  <text x="28" y="77" class="small">Experiments · Jobs · Pipelines는 별도 학습 엔진이 아니라 실행과 결과를 보는 관점</text>
+  <g class="node">
+    <rect x="28" y="100" width="1024" height="96" rx="12" fill="#eef6ff" stroke="#83a9ca"/>
+    <text x="52" y="139" class="heading">Experiment · kt-telco-churn</text>
+    <text x="52" y="172">같은 목적의 실행을 묶음 · 이름·상태·태그로 찾고 실행 조건과 결과를 비교</text>
+  </g>
+  <path class="edge" d="M274 196V230M806 196V230"/>
+  <g class="node">
+    <rect x="28" y="230" width="492" height="178" rx="12" fill="#fff" stroke="#8daec6"/>
+    <text x="48" y="266" class="heading">Pipeline 부모 Job A · logistic</text>
+    <text x="48" y="296" class="small">전체 실행 상태 · graph · 입력과 출력</text>
+    <rect x="48" y="320" width="168" height="64" rx="8" fill="#eef6ff" stroke="#83a9ca"/>
+    <text x="66" y="346">Prepare 자식 Job</text>
+    <text x="66" y="370" class="small">데이터 준비</text>
+    <path class="edge" d="M216 352H272"/>
+    <rect x="272" y="320" width="224" height="64" rx="8" fill="#eaf7f0" stroke="#63a58a"/>
+    <text x="292" y="346">Train 자식 Job</text>
+    <text x="292" y="370" class="small">학습 + MLflow 기록</text>
+  </g>
+  <g class="node">
+    <rect x="560" y="230" width="492" height="178" rx="12" fill="#fff" stroke="#8daec6"/>
+    <text x="580" y="266" class="heading">Pipeline 부모 Job B · forest</text>
+    <text x="580" y="296" class="small">동일한 Data v1 · holdout · seed 42</text>
+    <rect x="580" y="320" width="168" height="64" rx="8" fill="#eef6ff" stroke="#83a9ca"/>
+    <text x="598" y="346">Prepare 자식 Job</text>
+    <text x="598" y="370" class="small">데이터 준비</text>
+    <path class="edge" d="M748 352H804"/>
+    <rect x="804" y="320" width="224" height="64" rx="8" fill="#eaf7f0" stroke="#63a58a"/>
+    <text x="824" y="346">Train 자식 Job</text>
+    <text x="824" y="370" class="small">학습 + MLflow 기록</text>
+  </g>
+  <path class="edge" d="M384 384V445M916 384V445"/>
+  <g class="node">
+    <rect x="28" y="445" width="1024" height="112" rx="12" fill="#eaf7f0" stroke="#63a58a"/>
+    <text x="52" y="481" class="heading">각 Train 실행에 연결된 MLflow 기록</text>
+    <text x="52" y="513">Params · Metrics · Tags · Artifacts (평가 이미지·JSON·MLflow 모델 패키지)</text>
+    <text x="52" y="540" class="small">기록한 학습 실행에서 확인 · 자식 지표를 부모 Pipeline으로 자동 집계하지 않음</text>
+  </g>
+  <path class="edge" d="M540 557V590"/>
+  <g class="node">
+    <rect x="28" y="590" width="1024" height="94" rx="12" fill="#fff8e9" stroke="#d6b36d"/>
+    <text x="52" y="628" class="heading">Studio: 실행 찾기 → 조건·결과 비교 → 등록 모델의 원본 실행 확인</text>
+    <text x="52" y="659" class="small">지표 비교는 Train 실행에서 · Model 버전 등록은 Pipeline 완료 후 SDK에서 수행</text>
+  </g>
+  <text x="28" y="723" class="small">알고리즘 비교는 한 사례 · 데이터·파라미터·코드·환경 변경도 추적 가능 · 최신 버전 ≠ 최고 품질</text>
 </svg>

@@ -45,7 +45,7 @@ EXAMPLES = {
     ),
     "05-mlflow": (
         Example(
-            "같은 holdout의 지표 기록",
+            "Train 실행에 지표와 평가 산출물 기록",
             "demo/training.py",
             "metrics = {",
             8,
@@ -139,7 +139,7 @@ MESSAGES = {
     "02-architecture": "Workspace = 협업·권한·추적의 경계",
     "03-data": "Job은 이름:버전을 보고, 데이터는 Storage에서 읽음",
     "04-pipelines": "Pipeline = 독립 실행 가능한 ML 워크플로",
-    "05-mlflow": "Workspace → Experiment → Run",
+    "05-mlflow": "Experiment로 묶고, Job으로 실행하고, MLflow로 근거를 기록",
     "06-models": "모델은 파일 하나가 아니라 배포 가능한 패키지",
     "07-environments": "Environment = 실행 조건의 버전",
     "08-serving": "init()은 한 번, run()은 요청마다",
