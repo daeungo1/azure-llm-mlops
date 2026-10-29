@@ -57,6 +57,72 @@ Workspace Private Endpoint는 세 팀 모두 Approved입니다.
 
 ![팀별 RG와 공용 Registry 구조](images/multi-team-architecture.svg?v=20261029-terminology)
 
+### 팀별 Compute Instance와 Training Notebook
+
+2026-10-29 세 팀 Workspace의 Compute Instance가 모두 **Succeeded / Running**인 것을 실제 API에서 확인했습니다.
+기존 원본 Workspace가 아니라 각 팀 RG에 하나씩 추가했습니다.
+
+| 팀 Workspace | Compute Instance | Size | 상태 |
+|---|---|---|---|
+| `mlw-ktmlops-secure-1` | `ci-kt-team1` | Standard_DS3_v2 | Succeeded / Running |
+| `mlw-ktmlops-secure-2` | `ci-kt-team2` | Standard_DS3_v2 | Succeeded / Running |
+| `mlw-ktmlops-secure-3` | `ci-kt-team3` | Standard_DS3_v2 | Succeeded / Running |
+
+세 Instance 모두 팀 전용 Compute subnet을 사용하며 public IP와 public SSH는 비활성화했습니다.
+User-assigned Managed Identity로 keyless Storage 접근을 유지하고 유휴 240분 후 자동 종료합니다.
+Notebook workstation과 실제 Training Job용 `cpu-secure` Compute Cluster는 별도입니다.
+
+각 Workspace의 `workspaceworkingdirectory` Azure Files share에 아래 다섯 파일을 업로드하고,
+다운로드한 전체 bytes와 SHA256이 원본과 일치하는지 확인했습니다. 총 **15/15 파일 검증 성공**입니다.
+
+```text
+Users/kt-demo/kt-mlops-training/
+  01_submit_training.ipynb
+  config.json
+  src/demo/__init__.py
+  src/demo/data.py
+  src/demo/training.py
+```
+
+`config.json`은 해당 팀 Workspace와 Identity client ID를 지정하며 secret을 포함하지 않습니다.
+Notebook은 Registry Data·Environment v1 → Prepare → Train을 연결하고
+Logistic Regression / Random Forest를 `kt-notebook-training` Experiment에 제출합니다.
+기존 학습 Source를 그대로 사용하고, Train Child Run의 Metrics·Artifacts를 조회합니다.
+Optional Model 등록은 기본 비활성화이며 기존 Online Endpoint는 변경하지 않습니다.
+
+#### Authentication과 실제 Training 결과
+
+세 Instance의 SSO 활성화와 Running 상태를 API로 재확인했습니다.
+로컬 Notebook 검증에서 발생한 `Failed to invoke the Azure CLI`는
+token 요청 subprocess의 기본 10초 timeout이 원인이었습니다.
+Notebook의 `DefaultAzureCredential`에 기존 배포 코드와 동일한 `process_timeout=600`을 적용했습니다.
+connect 셀은 Workspace read API를 실제 호출한 뒤에만 `Authenticated Workspace`를 출력합니다.
+
+재업로드 중 발생한 Azure Files 403은 현재 랩탑 egress IP가 기존 NSP allowlist와 달라 발생했습니다.
+세 팀의 기존 `operator-egress` rule에 현재 IP의 `/32`만 추가하고,
+수정 Notebook을 포함한 **15/15 파일 upload·download 비교**를 다시 통과했습니다.
+NSP와 Storage Shared Key 비활성화 설정은 유지했습니다.
+랩탑의 공인 IP가 변경되면 해당 `/32` allowlist도 갱신해야 합니다.
+
+이미 제출된 여섯 Pipeline은 모두 **Completed**입니다. 재검증에서는 새 Job을 제출하지 않았습니다.
+각 Train Run의 MLflow Metrics, train/test rows(1,125/375),
+`evaluation/metrics.json`, `evaluation/confusion_matrix.png`를 확인했습니다.
+세 팀에서 동일한 Data·seed로 아래 결과를 얻었습니다.
+
+| 알고리즘 | Accuracy | F1 | ROC AUC | 확인된 Train Runs |
+|---|---|---|---|---|
+| Logistic Regression | 0.7333 | 0.5902 | 0.7878 | 3/3 |
+| Random Forest | 0.7307 | 0.5511 | 0.7845 | 3/3 |
+
+위 결과 조회는 로컬 Azure CLI 인증으로 Notebook의 connect·metrics 셀을 실행한 검증입니다.
+Compute Instance kernel 내부의 Managed Identity 인증이나 signed-in Studio 연결 성공을 의미하지 않습니다.
+공유 브라우저는 Entra 로그인 화면이므로 해당 interactive 검증은 아직 남아 있습니다.
+Studio의 사용자 로그인은 Notebook의 Managed Identity와 별도이며,
+Compute owner 계정으로 로그인 또는 Authenticate를 완료한 뒤 kernel을 선택합니다.
+
+[Training Notebook 원본](https://github.com/daeungo1/azure-llm-mlops/blob/main/notebooks/01_submit_training.ipynb) ·
+[Studio 실행 순서](https://daeungo1.github.io/azure-llm-mlops/05-mlflow/#notebooks에서-training-job-제출하기)
+
 ### 공통 자산과 네트워크 경계
 
 Azure ML Registry는 Data, Model, Environment, Component를 공유하는 ML 자산 카탈로그입니다.

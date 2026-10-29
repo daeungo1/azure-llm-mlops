@@ -19,6 +19,7 @@ dependencies = [
   "tqdm>=4.67,<5",
   "ruff>=0.14,<1",
   "pytest>=8.4,<9",
+  "azure-storage-file-share>=12.27,<13",
 ]
 
 [project.optional-dependencies]
