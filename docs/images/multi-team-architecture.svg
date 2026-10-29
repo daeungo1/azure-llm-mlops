@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1050" viewBox="0 0 1000 1050" style="max-width:100%;height:auto" role="img" aria-labelledby="title desc">
   <title id="title">팀별 RG와 공용 Azure ML Registry</title>
-  <desc id="desc">세 팀은 각각 별도의 리소스 그룹, Workspace, Storage, Key Vault, ACR, 로그, VNet, NAT 및 private CPU Compute를 사용합니다. Registry Blob은 팀별 Private Endpoint로 연결하며 관리형 deny와 조직 정책을 유지합니다. 중앙 Azure ML Registry의 동일 모델, 환경 및 Component 버전을 각 팀 Job이 참조합니다. 팀 직접 비용은 RG별로 구분하며 Registry와 관리형 backing RG 비용은 공통 비용입니다. 검증된 기존 secure Workspace는 별도의 교육 이력과 HF 서빙용으로 유지합니다.</desc>
+  <desc id="desc">세 팀은 각각 별도의 리소스 그룹, Workspace, Storage, Key Vault, ACR, 로그, VNet, NAT 및 private CPU Compute를 사용합니다. Registry Blob은 팀별 Private Endpoint로 연결하며 관리형 deny와 조직 정책을 유지합니다. 중앙 Azure ML Registry는 Data, Model, Environment 및 Component를 공유합니다. 각 팀의 HF CPU Online Endpoint는 공유 churn 모델 Job과 별도로 Entra 인증을 사용합니다. 팀 직접 비용은 RG별로 구분하며 Registry와 관리형 backing RG 비용은 공통 비용입니다. 기존 secure Workspace의 교육 이력과 HF Endpoint는 유지합니다.</desc>
   <defs>
     <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M1 1 9 5 1 9Z" fill="#32658b"/></marker>
     <style>
@@ -17,7 +17,7 @@
     <text x="52" y="146" class="heading">공통 RG: rg-kt-mlops / Azure ML Registry</text>
     <text x="52" y="178">mlr-ktmlops-shared</text>
     <text x="52" y="210">Model: telco-shared:1 · Environment: kt-shared-cpu:1</text>
-    <text x="52" y="242">Component: verify_shared_model:3</text>
+    <text x="52" y="242">Component: verify_shared_model:3 · Data: telco-churn-shared:1/2</text>
     <text x="52" y="270" class="small">AML Registry는 ML 자산 카탈로그 · ACR은 컨테이너 이미지 저장소</text>
   </g>
   <path d="M500 286V318H180V368" class="edge"/>
@@ -32,7 +32,8 @@
     <text x="52" y="508">Storage · Key Vault</text>
     <text x="52" y="540">ACR · Insights · Logs</text>
     <text x="52" y="572" class="small">NSP · VNet · NAT · Private Link</text>
-    <text x="52" y="604">CPU min 0 / max 1</text>
+    <text x="52" y="604">학습 CPU min 0 / max 1</text>
+    <text x="52" y="626" class="small">HF: kt-hf-cpu-team-1</text>
     <text x="52" y="646" class="small">compute identity → 자기 데이터</text>
     <text x="52" y="680" class="small">costCenter: kt-mlops-team-1</text>
   </g>
@@ -44,7 +45,8 @@
     <text x="372" y="508">Storage · Key Vault</text>
     <text x="372" y="540">ACR · Insights · Logs</text>
     <text x="372" y="572" class="small">NSP · VNet · NAT · Private Link</text>
-    <text x="372" y="604">CPU min 0 / max 1</text>
+    <text x="372" y="604">학습 CPU min 0 / max 1</text>
+    <text x="372" y="626" class="small">HF: kt-hf-cpu-team-2</text>
     <text x="372" y="646" class="small">compute identity → 자기 데이터</text>
     <text x="372" y="680" class="small">costCenter: kt-mlops-team-2</text>
   </g>
@@ -56,7 +58,8 @@
     <text x="692" y="508">Storage · Key Vault</text>
     <text x="692" y="540">ACR · Insights · Logs</text>
     <text x="692" y="572" class="small">NSP · VNet · NAT · Private Link</text>
-    <text x="692" y="604">CPU min 0 / max 1</text>
+    <text x="692" y="604">학습 CPU min 0 / max 1</text>
+    <text x="692" y="626" class="small">HF: kt-hf-cpu-team-3</text>
     <text x="692" y="646" class="small">compute identity → 자기 데이터</text>
     <text x="692" y="680" class="small">costCenter: kt-mlops-team-3</text>
   </g>
@@ -64,7 +67,7 @@
     <rect x="32" y="748" width="936" height="116" rx="12" class="box"/>
     <text x="52" y="782" class="heading">비용 확인: Cost Management → Cost analysis → Resource group별 분류</text>
     <text x="52" y="814">팀별 RG 비용과 공통 Registry backing RG 비용을 분리해서 확인</text>
-    <text x="52" y="846" class="small">청구 반영 지연 가능 · 태그는 권한 경계가 아님 · max 1은 동시 VM 상한이지 금액 한도 아님</text>
+    <text x="52" y="846" class="small">청구 반영 지연 가능 · 태그는 권한 경계가 아님 · max 1은 학습 VM 상한이며 서빙은 별도 과금</text>
   </g>
   <g class="node">
     <rect x="32" y="896" width="936" height="122" rx="12" fill="#f1f5fa" stroke="#b8c9da"/>

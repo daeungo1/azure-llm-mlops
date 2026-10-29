@@ -30,18 +30,47 @@ Workspace Private Endpoint는 세 팀 모두 Approved입니다.
 
 ### 공통 자산과 네트워크 경계
 
-Azure ML Registry는 Model, Environment, Component를 공유하는 ML 자산 카탈로그입니다.
+Azure ML Registry는 Data, Model, Environment, Component를 공유하는 ML 자산 카탈로그입니다.
 컨테이너 이미지를 저장하는 ACR과는 별도 서비스입니다.
 기존 검증 Workspace에서 공유한 churn MLflow 모델 `telco-shared:1`과
 CPU 학습 환경 `kt-shared-cpu:1`, Registry에 직접 등록한 검증 Component
 `verify_shared_model:3`은 등록이 완료되었습니다.
+2026-10-29에는 합성 Data `telco-churn-shared:1/2`도 공유하고
+네 자산 유형 모두 실제 Registry 목록·버전 조회로 확인했습니다.
+
+| 자산 유형 | 공유 자산 | 버전 | 용도 |
+|---|---|---|---|
+| Environment | `kt-shared-cpu` | 1 | CPU sklearn·MLflow 실행 환경 |
+| Data | `telco-churn-shared` | 1, 2 | 합성 churn CSV, 각각 1,500행·1,800행 |
+| Model | `telco-shared` | 1 | 학습 완료된 churn MLflow 모델 |
+| Component | `verify_shared_model` | 3 | 공유 모델 추론과 팀 Storage 권한 검사 |
+
+[Registry 열기](https://ml.azure.com/registries/mlr-ktmlops-shared?tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf)에서
+각 유형의 목록과 해당 버전을 선택합니다. 기존 Component v1/v2는 삭제하지 않았으며,
+정상 소비가 검증된 버전은 v3입니다.
+Data는 Workspace-to-Registry 공유 API로 backing Storage에 복제했습니다.
+원본 팀 Storage의 권한을 다른 팀에 부여하지 않으며, Registry backing Storage의
+public Disabled 정책과 Private Endpoint를 유지합니다.
+Registry Data는 세밀한 팀별 데이터 접근 통제를 대체하지 않으므로 합성 데이터만 공유합니다.
+현재 SDK의 `data.share`는 experimental로 표시됩니다.
+[Data 공유 공식 문서](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-share-data-across-workspaces-with-registries?view=azureml-api-2)를 함께 참고하세요.
+
+팀 1의 private `cpu-secure`에서 두 Data 버전을 실제로 다운로드한
+[검증 Job](https://ml.azure.com/runs/lime_bread_67s30pgpvk?wsid=/subscriptions/2cf925b6-80cb-4567-abda-5ccd3010aab5/resourcegroups/rg-kt-mlops-team-1/workspaces/mlw-ktmlops-secure-1&tid=f6d04047-ac77-4fc2-941f-798ed4d54fcf)은
+Completed입니다. 실제 실행 로그를 내려받아 v1의 1,500행과 v2의 1,800행,
+각 파일의 SHA-256이 원본 Workspace 파일과 일치함을 확인했습니다.
+Registry 목록에 이름만 등록된 상태가 아니라 다른 Workspace에서 파일을 소비한 결과입니다.
+이는 private Compute 경로의 검증이며, 랩탑의 Registry Blob 직접 다운로드나
+Studio 데이터 미리보기 렌더링을 확인한 것은 아닙니다.
+
 Component v1/v2는 AML 실행 명령의 공백 정규화로 Python 들여쓰기가 손상되어 실패했습니다.
 v2의 Registry 원문은 로컬과 동일했지만 실행 단계에서 다시 손상됨을 확인했습니다.
 v3는 신뢰된 로컬 코드 원문을 Base64로 직렬화해 한 줄 명령으로 전달하고,
 실행 시 복원합니다. 별도 코드 업로드나 입력 데이터의 실행은 하지 않습니다.
 Model·Environment v1은 유지했으며 기존 불변 Component 버전은 덮어쓰지 않았습니다.
-세 팀은 동일한 Model v1·Environment v1·Component v3를 사용했습니다.
-HF MiniLM을 재학습하거나 각 팀에 Endpoint 세 개를 복제하는 구성이 아닙니다.
+세 팀의 Registry 소비 Job은 동일한 Model v1·Environment v1·Component v3를 사용했습니다.
+이는 churn 모델의 Job 추론 경로입니다. 아래 HF Online Endpoint와는 모델·실행 경로가 다르며,
+HF MiniLM을 재학습하지 않습니다.
 
 | 팀 | 완료된 Pipeline Job | 실제 예측 | 자기 Blob | 상대 팀 Blob |
 |---|---|---|---|---|
@@ -57,8 +86,9 @@ HF MiniLM을 재학습하거나 각 팀에 Endpoint 세 개를 복제하는 구�
 Job별 로컬 `verification.json`과 `multiteam.json`에 기록합니다.
 Pipeline named-output URI가 없어 SDK가 다운로드를 건너뛰는 경우를
 보고서 수집 성공으로 처리하지 않도록 검증했습니다.
-최종 로컬 검증은 pytest 39개 통과·1개 skip, Ruff 검사와 포맷 검사를 통과했습니다.
-네 개 SVG의 XML과 관련 문서의 로컬 링크 대상도 확인했습니다.
+2026-10-29 최종 로컬 검증은 pytest 72개 통과·1개 skip,
+Ruff 검사·포맷 검사와 strict 문서 빌드를 통과했습니다.
+팀별 아키텍처 SVG의 Data·Endpoint 표기와 XML도 확인했습니다.
 Job 종료 후 세 팀 Compute는 모두 실제 노드 0대·Steady로 축소된 것을 확인했습니다.
 NAT·Private Endpoint·ACR 등은 노드가 0대여도 기본 비용이 발생합니다.
 
@@ -94,6 +124,43 @@ Blob Private DNS 링크에만 `NxDomainRedirect`를 적용했습니다.
 팀 Compute identity에는 자기 Storage의 Blob 역할과 Registry Reader만 부여하는 방식입니다.
 구독 Owner 계정의 모든 팀 조회는 팀 사용자 격리의 증거가 아닙니다.
 실제 Entra 팀 사용자·그룹, 10개 팀 전체, Slurm 연동과 운영 보안 인증은 검증 범위가 아닙니다.
+
+### 팀별 HF CPU Online Endpoint
+
+팀별 실시간 서빙은 각 Workspace의 `hf-minilm-ticket-router:1` 모델,
+`kt-hf-cpu:1` 환경과 `blue` Deployment를 사용합니다.
+공통 Workspace의 기존 Endpoint는 그대로 유지합니다.
+각 Endpoint는 public ingress와 Entra `aad_token` 인증을 사용하며,
+모델은 고정 revision의 `sentence-transformers/all-MiniLM-L6-v2`입니다.
+팀별 Endpoint identity에는 자기 Storage의 Blob Data Reader와 자기 ACR의 AcrPull을 부여합니다.
+다른 팀의 데이터 권한이나 구독 범위 역할을 추가하지 않습니다.
+
+`python -m demo.multiteam serve --subscription <subscription-id>`는 배포 후 호출을 검사하고,
+`verify-endpoints`는 재배포 없이 같은 검사를 반복합니다.
+각 정상 요청의 모델 이름·384차원·세 intent를 모두 검사한 뒤
+무인증 요청과 빈 배열 요청의 거부 여부를 확인합니다.
+팀별 증적은 `local/<workspace>/online-verification.json`에 저장하고
+세 결과를 `local/multiteam.json`의 `online_endpoints`에 모읍니다.
+기존 `local/state.json`의 학습·외부 MLflow·Endpoint 기록은 변경하지 않습니다.
+
+2026-10-29 10:05 KST에 세 팀을 재배포 없이 다시 호출한 결과입니다.
+Endpoint와 `blue` Deployment는 모두 Succeeded이며, traffic은 `blue: 100`입니다.
+
+| RG | Online Endpoint | 정상 요청 3회 | 무인증 | 빈 texts | 3회 왕복 지연 |
+|---|---|---|---|---|---|
+| `rg-kt-mlops-team-1` | `kt-hf-cpu-team-1` | 200 / 200 / 200 | 401 | 424 | 1.813 / 1.391 / 1.654초 |
+| `rg-kt-mlops-team-2` | `kt-hf-cpu-team-2` | 200 / 200 / 200 | 401 | 424 | 2.835 / 1.859 / 1.927초 |
+| `rg-kt-mlops-team-3` | `kt-hf-cpu-team-3` | 200 / 200 / 200 | 401 | 424 | 2.661 / 1.839 / 1.867초 |
+
+세 팀 모두 `billing`, `network`, `cancellation` 순서와 임베딩 차원 384가 일치했습니다.
+각 Endpoint의 own Storage Blob Data Reader·own ACR AcrPull 역할도 실제 조회로 확인했습니다.
+왕복 시간은 랩탑에서의 소수 샘플이며 부하 테스트나 성능 SLO 검증이 아닙니다.
+Studio의 각 팀 Workspace에서 Endpoints → 해당 Endpoint → Test → `blue`를 선택하고,
+[README의 Sample inference JSON](../README.md#8-managed-online-endpoint-모델을-인증된-api로-제공하기)을 사용합니다.
+
+각 Online Deployment는 DS2_v2 1대를 상시 사용합니다.
+이미지 빌드용 private `cpu-secure` cluster와는 별도 Compute이므로,
+학습 노드가 0대로 줄어도 Online Deployment의 과금은 계속됩니다.
 
 ### 비용 구분과 현재 조회 결과
 
@@ -305,7 +372,7 @@ File share와 팀 ACR이 빈 것은 접근 오류가 아닙니다.
 
 `python -m demo.manage verify`는 Pipeline·자산·Endpoint 상태를 확인한 뒤
 Endpoint를 실제로 호출합니다. 초기 기록은 2026-10-27 02:40 UTC이고,
-현재 `local/verification.json`에는 2026-10-28 14:15 UTC에
+현재 `local/verification.json`에는 2026-10-29 00:30 UTC에
 랩탑에서 다시 실행한 결과가 남아 있습니다.
 
 | 검증 항목 | 실제 결과 |
@@ -321,7 +388,7 @@ Endpoint를 실제로 호출합니다. 초기 기록은 2026-10-27 02:40 UTC이�
 | 실제 추론 | billing / network / cancellation, HTTP 200 |
 | 임베딩 차원 | 384 |
 | 상위 cosine similarity | 0.792 / 0.736 / 0.740 |
-| 3회 왕복 지연(2026-10-28 14:15 UTC) | 1.622 / 0.973 / 0.779초 |
+| 3회 왕복 지연(2026-10-29 00:30 UTC) | 1.017 / 1.027 / 0.884초 |
 | 무인증 요청 | HTTP 401 |
 | 빈 texts | 외부 HTTP 424, model-error-statuscode 400 |
 

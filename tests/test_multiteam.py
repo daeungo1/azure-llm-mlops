@@ -24,6 +24,65 @@ def test_three_team_scopes_are_distinct():
     assert all(item["subscription_id"] == "subscription" for item in teams)
 
 
+@pytest.mark.parametrize("action", ["serve", "verify-endpoints"])
+def test_endpoint_actions_are_available(action):
+    args = module().create_parser().parse_args([action, "--subscription", "sub"])
+    assert args.action == action
+
+
+@pytest.mark.parametrize("deploy_endpoint", [True, False])
+def test_team_serving_reuses_deployment_and_saves_separate_evidence(
+    tmp_path, monkeypatch, deploy_endpoint
+):
+    shared = module()
+    monkeypatch.setattr(shared, "ROOT", tmp_path)
+    ml = Mock()
+    monkeypatch.setattr(shared, "workspace_client", Mock(return_value=ml))
+    deploy = Mock()
+    monkeypatch.setattr(shared, "deploy", deploy, raising=False)
+    proof = {"endpoint": "kt-hf-cpu-team-2", "inference": {"embedding_dimension": 384}}
+    monkeypatch.setattr(shared, "verify_online", Mock(return_value=proof), raising=False)
+    config = shared.team_configs("sub")[1]
+    assert shared.serve_team(config, deploy_endpoint=deploy_endpoint) == proof
+    if deploy_endpoint:
+        deploy.assert_called_once_with(
+            ml, endpoint_name="kt-hf-cpu-team-2", record_main_state=False, model_folder=None
+        )
+    else:
+        deploy.assert_not_called()
+    saved = tmp_path / "local" / config["workspace_name"] / "online-verification.json"
+    assert json.loads(saved.read_text()) == proof
+
+
+def test_serving_collects_all_three_teams_without_registry_job_state(monkeypatch):
+    shared = module()
+    run = Mock(side_effect=lambda config, **kwargs: {"workspace": config["workspace_name"]})
+    record = Mock()
+    monkeypatch.setattr(shared, "serve_team", run)
+    monkeypatch.setattr(shared, "record", record)
+    shared.serve("sub", deploy_endpoints=False)
+    reports = record.call_args.kwargs["online_endpoints"]
+    assert [r["workspace"] for r in reports] == [
+        f"mlw-ktmlops-secure-{number}" for number in range(1, 4)
+    ]
+
+
+def test_bulk_serving_prepares_snapshot_once_before_parallel_deployment(tmp_path, monkeypatch):
+    shared = module()
+    prepare = Mock(return_value=tmp_path)
+    monkeypatch.setattr(shared, "prepare_model", prepare, raising=False)
+
+    def run(config, *, deploy_endpoint, model_folder=None):
+        prepare.assert_called_once_with()
+        assert deploy_endpoint is True
+        assert model_folder == tmp_path
+        return {"workspace": config["workspace_name"]}
+
+    monkeypatch.setattr(shared, "serve_team", run)
+    monkeypatch.setattr(shared, "record", Mock())
+    shared.serve("sub", deploy_endpoints=True)
+
+
 def test_team_foundation_receives_disabled_managed_network_mode():
     template = (Path(__file__).parents[1] / "infra" / "teams.bicep").read_text(encoding="utf-8")
     group, foundation = template.split("module foundations ", 1)
@@ -197,7 +256,10 @@ def test_costs_collects_every_page_and_common_backing_group(tmp_path, monkeypatc
     )
 
 
-def test_publish_resumes_recorded_shares_without_uploading_code(tmp_path, monkeypatch):
+@pytest.mark.parametrize("data_already_shared", [True, False])
+def test_publish_resumes_recorded_shares_without_uploading_code(
+    tmp_path, monkeypatch, data_already_shared
+):
     shared = module()
     reference = "azureml://registries/mlr-test"
     report = tmp_path / "multiteam.json"
@@ -206,6 +268,17 @@ def test_publish_resumes_recorded_shares_without_uploading_code(tmp_path, monkey
             {
                 "model": f"{reference}/models/telco-shared/versions/1",
                 "environment": f"{reference}/environments/kt-shared-cpu/versions/1",
+                **(
+                    {
+                        "data": f"{reference}/data/telco-churn-shared/versions/1",
+                        "data_versions": {
+                            v: f"{reference}/data/telco-churn-shared/versions/{v}"
+                            for v in ["1", "2"]
+                        },
+                    }
+                    if data_already_shared
+                    else {}
+                ),
             }
         )
     )
@@ -213,6 +286,13 @@ def test_publish_resumes_recorded_shares_without_uploading_code(tmp_path, monkey
     source, registry = Mock(), Mock()
     registry.models.get.return_value.id = f"{reference}/models/telco-shared/versions/1"
     registry.environments.get.return_value.id = f"{reference}/environments/kt-shared-cpu/versions/1"
+    data_id = f"{reference}/data/telco-churn-shared/versions/1"
+    registry.data.get.side_effect = lambda name, v: SimpleNamespace(
+        id=f"{reference}/data/{name}/versions/{v}"
+    )
+    source.data.share.side_effect = lambda name, v, **kwargs: SimpleNamespace(
+        id=f"{reference}/data/telco-churn-shared/versions/{v}"
+    )
     registry.components.create_or_update.return_value.id = (
         f"{reference}/components/verify_shared_model/versions/3"
     )
@@ -220,6 +300,24 @@ def test_publish_resumes_recorded_shares_without_uploading_code(tmp_path, monkey
     shared.publish("sub", "mlr-test")
     source.models.share.assert_not_called()
     source.environments.share.assert_not_called()
+    if data_already_shared:
+        assert [c.args for c in registry.data.get.call_args_list] == [
+            ("telco-churn-shared", "1"),
+            ("telco-churn-shared", "2"),
+        ]
+        source.data.share.assert_not_called()
+    else:
+        assert source.data.share.call_count == 2
+        for version in ["1", "2"]:
+            source.data.share.assert_any_call(
+                "telco-churn",
+                version,
+                share_with_name="telco-churn-shared",
+                share_with_version=version,
+                registry_name="mlr-test",
+            )
+    assert json.loads(report.read_text())["data"] == data_id
+    assert set(json.loads(report.read_text())["data_versions"]) == {"1", "2"}
     component = registry.components.create_or_update.call_args.args[0]
     assert component.code is None
     assert "\n" not in component.command, (

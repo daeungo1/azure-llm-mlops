@@ -75,6 +75,8 @@ Workspace는 실행과 자산을 연결하고, Storage와 ACR은 데이터·모�
 기존 검증 Workspace를 유지하면서 팀별 RG·Workspace·Storage·Compute를 별도로 배포했습니다.
 공용 자산을 소비한 세 팀의 Job에서 자기 Blob 200과 다른 팀 Blob 403을 확인했습니다.
 이는 실행 identity의 순환 3개 경로 검증이며, 팀 사용자 그룹 전체의 격리 검증은 아닙니다.
+Registry에는 Data·Model·Environment·Component를 공유하고,
+별도의 팀별 HF CPU Endpoint 세 개에서 인증·정상 추론·입력 오류를 확인했습니다.
 
 ## 확인한 범위와 다음 과제
 

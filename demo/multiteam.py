@@ -10,6 +10,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from io import StringIO
+from pathlib import Path
 
 import requests
 from azure.ai.ml import Input, MLClient, Output, command, load_job
@@ -22,6 +23,7 @@ from azure.ai.ml.entities import (
 )
 from azure.identity import AzureCliCredential
 
+from demo.endpoint import deploy, prepare_model, verify_online
 from demo.workspace import ROOT, grant_role
 
 LOGGER = logging.getLogger(__name__)
@@ -115,6 +117,23 @@ def publish(subscription: str, registry_name: str) -> None:
             registry_name=registry_name,
         )
     record(environment=environment.id)
+    data_versions = report.get("data_versions", {})
+    for version in ["1", "2"]:
+        data_id = f"{reference}/data/telco-churn-shared/versions/{version}"
+        if data_versions.get(version) == data_id or (
+            version == VERSION and report.get("data") == data_id
+        ):
+            data = registry.data.get("telco-churn-shared", version)
+        else:
+            data = source.data.share(
+                "telco-churn",
+                version,
+                share_with_name="telco-churn-shared",
+                share_with_version=version,
+                registry_name=registry_name,
+            )
+        data_versions[version] = data.id
+        record(data=data_versions[VERSION], data_versions=data_versions)
     probe_source = (ROOT / "demo" / "registry_probe" / "probe.py").read_text(encoding="utf-8")
     # AML normalizes command whitespace, including whitespace inside quoted source.
     encoded_probe = base64.b64encode(probe_source.encode("utf-8")).decode("ascii")
@@ -141,7 +160,7 @@ def publish(subscription: str, registry_name: str) -> None:
     record(
         registry=registry_name, model=model.id, environment=environment.id, component=registered.id
     )
-    LOGGER.info("Published model, environment and component to %s.", registry_name)
+    LOGGER.info("Published data, model, environment and component to %s.", registry_name)
 
 
 def prepare_team(config: dict[str, str], registry_id: str) -> dict[str, str]:
@@ -374,9 +393,40 @@ def costs(subscription: str) -> None:
     print(json.dumps(rows, indent=2))
 
 
+def serve_team(
+    config: dict[str, str], *, deploy_endpoint: bool, model_folder: Path | None = None
+) -> dict:
+    ml = workspace_client(config)
+    endpoint_name = f"kt-hf-cpu-team-{config['workspace_name'].rsplit('-', 1)[-1]}"
+    if deploy_endpoint:
+        deploy(ml, endpoint_name=endpoint_name, record_main_state=False, model_folder=model_folder)
+    report = verify_online(ml, endpoint_name)
+    path = ROOT / "local" / config["workspace_name"] / "online-verification.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    LOGGER.info("Verified %s; evidence: %s", endpoint_name, path)
+    return report
+
+
+def serve(subscription: str, *, deploy_endpoints: bool) -> None:
+    model_folder = prepare_model() if deploy_endpoints else None
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = [
+            pool.submit(
+                serve_team, config, deploy_endpoint=deploy_endpoints, model_folder=model_folder
+            )
+            for config in team_configs(subscription)
+        ]
+        reports = [future.result() for future in futures]
+    record(online_endpoints=reports)
+    print(json.dumps(reports, indent=2))
+
+
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["publish", "prepare", "consume", "costs"])
+    parser.add_argument(
+        "action", choices=["publish", "prepare", "consume", "costs", "serve", "verify-endpoints"]
+    )
     parser.add_argument("--subscription", required=True)
     parser.add_argument("--registry", default="mlr-ktmlops-shared")
     return parser
@@ -387,7 +437,9 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logging.getLogger("azure").setLevel(logging.WARNING)
     args = create_parser().parse_args()
-    if args.action == "costs":
+    if args.action in {"serve", "verify-endpoints"}:
+        serve(args.subscription, deploy_endpoints=args.action == "serve")
+    elif args.action == "costs":
         costs(args.subscription)
     else:
         {"publish": publish, "prepare": prepare, "consume": consume}[args.action](

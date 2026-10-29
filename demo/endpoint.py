@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from datetime import UTC, datetime
+from pathlib import Path
 
 import requests
 from azure.ai.ml import MLClient
@@ -29,7 +30,8 @@ HF_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 HF_REVISION = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
 
 
-def deploy(ml: MLClient) -> None:
+def prepare_model() -> Path:
+    """Prepare the pinned snapshot before starting concurrent workspace uploads."""
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
     folder = ROOT / "local" / "hf-model"
     snapshot_download(
@@ -47,6 +49,17 @@ def deploy(ml: MLClient) -> None:
             "LICENSE*",
         ],
     )
+    return folder
+
+
+def deploy(
+    ml: MLClient,
+    *,
+    endpoint_name: str = ENDPOINT,
+    record_main_state: bool = True,
+    model_folder: Path | None = None,
+) -> None:
+    folder = prepare_model() if model_folder is None else model_folder
     model = ml.models.create_or_update(
         Model(
             name="hf-minilm-ticket-router",
@@ -68,7 +81,7 @@ def deploy(ml: MLClient) -> None:
     )
     endpoint = ml.online_endpoints.begin_create_or_update(
         ManagedOnlineEndpoint(
-            name=ENDPOINT,
+            name=endpoint_name,
             description="Synthetic English telco routing, HF MiniLM CPU. Entra authentication.",
             auth_mode="aad_token",
             public_network_access="enabled",
@@ -81,12 +94,13 @@ def deploy(ml: MLClient) -> None:
         (workspace.container_registry, "7f951dda-4ed3-4680-a7ca-43fe172d538d"),
     ]:
         grant_role(scope, endpoint.identity.principal_id, role, ml.subscription_id)
-    save_state(
-        endpoint_name=endpoint.name, scoring_uri=endpoint.scoring_uri, hf_revision=HF_REVISION
-    )
+    if record_main_state:
+        save_state(
+            endpoint_name=endpoint.name, scoring_uri=endpoint.scoring_uri, hf_revision=HF_REVISION
+        )
     deployment = ManagedOnlineDeployment(
         name="blue",
-        endpoint_name=ENDPOINT,
+        endpoint_name=endpoint_name,
         model=model.id,
         environment=env.id,
         code_configuration=CodeConfiguration(
@@ -109,7 +123,8 @@ def deploy(ml: MLClient) -> None:
     ml.online_deployments.begin_create_or_update(deployment).result()
     endpoint.traffic = {"blue": 100}
     ml.online_endpoints.begin_create_or_update(endpoint).result()
-    save_state(endpoint_deployment="blue")
+    if record_main_state:
+        save_state(endpoint_deployment="blue")
 
 
 def verify(ml: MLClient) -> dict:
@@ -129,8 +144,23 @@ def verify(ml: MLClient) -> dict:
     models = [model.version for model in ml.models.list(name="telco-churn-classifier")]
     if not {"1", "2"} <= set(models):
         raise AssertionError(f"Missing MLflow model versions: {models}")
-    endpoint = ml.online_endpoints.get(ENDPOINT)
-    deployment = ml.online_deployments.get("blue", ENDPOINT)
+    report = verify_online(ml, ENDPOINT)
+    report.update(
+        data_versions=data,
+        churn_model_versions=models,
+        pipeline_jobs=state.get("pipeline_jobs", []),
+        external_run_id=state.get("external_run_id"),
+    )
+    path = ROOT / "local" / "verification.json"
+    path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    LOGGER.info("Live verification passed. Evidence: %s", path)
+    return report
+
+
+def verify_online(ml: MLClient, endpoint_name: str) -> dict:
+    """Verify every live response independently of the main workspace's training state."""
+    endpoint = ml.online_endpoints.get(endpoint_name)
+    deployment = ml.online_deployments.get("blue", endpoint_name)
     if endpoint.provisioning_state != "Succeeded" or deployment.provisioning_state != "Succeeded":
         raise AssertionError("Endpoint and deployment must both be Succeeded.")
     if endpoint.auth_mode != "aad_token" or endpoint.traffic != {"blue": 100}:
@@ -139,40 +169,44 @@ def verify(ml: MLClient) -> dict:
     token = AzureCliCredential(process_timeout=120).get_token("https://ml.azure.com/.default").token
     headers = {"Authorization": f"Bearer {token}"}
     latencies = []
+    statuses = []
     for _ in range(3):
         started = time.perf_counter()
         response = requests.post(endpoint.scoring_uri, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
+        if response.status_code != 200:
+            raise AssertionError(f"Expected HTTP 200, received {response.status_code}.")
+        statuses.append(response.status_code)
         latencies.append(round(time.perf_counter() - started, 3))
-    result = response.json()
-    if isinstance(result, str):
-        result = json.loads(result)
-    actual = [item["intent"] for item in result["predictions"]]
-    if actual != ["billing", "network", "cancellation"] or result["embedding_dimension"] != 384:
-        raise AssertionError(f"Unexpected endpoint output: {result}")
+        result = response.json()
+        if isinstance(result, str):
+            result = json.loads(result)
+        actual = [item["intent"] for item in result["predictions"]]
+        if (
+            actual != ["billing", "network", "cancellation"]
+            or result["embedding_dimension"] != 384
+            or result["model"] != HF_MODEL
+        ):
+            raise AssertionError(f"Unexpected endpoint output: {result}")
     anonymous = requests.post(endpoint.scoring_uri, json=payload, timeout=30)
     if anonymous.status_code not in (401, 403):
         raise AssertionError(f"Anonymous request unexpectedly returned {anonymous.status_code}.")
     invalid = requests.post(endpoint.scoring_uri, headers=headers, json={"texts": []}, timeout=30)
     if invalid.status_code < 400 or invalid.status_code >= 500:
         raise AssertionError(f"Invalid input must yield 4xx, not {invalid.status_code}.")
-    report = {
+    return {
         "verified_utc": datetime.now(UTC).isoformat(),
-        "data_versions": data,
-        "churn_model_versions": models,
-        "pipeline_jobs": state.get("pipeline_jobs", []),
-        "endpoint": ENDPOINT,
+        "resource_group": ml.resource_group_name,
+        "workspace": ml.workspace_name,
+        "endpoint": endpoint_name,
+        "scoring_uri": endpoint.scoring_uri,
         "endpoint_state": endpoint.provisioning_state,
         "deployment_state": deployment.provisioning_state,
         "authentication": endpoint.auth_mode,
         "traffic": endpoint.traffic,
         "inference": result,
         "request_seconds": latencies,
+        "request_statuses": statuses,
         "anonymous_status": anonymous.status_code,
         "invalid_input_status": invalid.status_code,
-        "external_run_id": state.get("external_run_id"),
     }
-    path = ROOT / "local" / "verification.json"
-    path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    LOGGER.info("Live verification passed. Evidence: %s", path)
-    return report

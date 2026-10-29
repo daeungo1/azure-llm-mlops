@@ -69,12 +69,12 @@ public 접근과 익명 접근은 다릅니다.
 | Managed Network / VNet·Private Endpoint | AML에서 보호된 의존 리소스로 접근 | 기존 데모는 Managed Network, 새 팀은 전용 VNet·Private Endpoint | 팀별 VNet·NAT·DNS·연결 비용 |
 | NSP | Storage의 public 네트워크 접근 경계 | Enforced 규칙과 운영자 IP 허용 | 팀별 Storage 경계, 데이터 RBAC 별도 |
 | Managed Identity / RBAC | 자격 증명 없이 실행 주체별 권한 제한 | Compute identity의 자기 Storage 권한 | 리소스 범위별 권한, 태그와 구분 |
-| Managed Online Endpoint / Deployment | 인증된 실시간 추론 API와 모델 실행 | HF 요청·응답·오류·배포 상태 | 기존 검증 Workspace의 상시 CPU 서빙 |
+| Managed Online Endpoint / Deployment | 인증된 실시간 추론 API와 모델 실행 | HF 요청·응답·오류·배포 상태 | 기존 Workspace와 팀별 상시 CPU 서빙 |
 | Application Insights / Log Analytics | 요청 관측·로그 수집과 조회 | 호출 흔적·컨테이너 로그·보존 설정 | 팀별 수집·보존 비용 |
 | Event Grid system topic / 기본 알림 | Azure 서비스가 생성하는 이벤트·관측 의존 기능 | 실제 구독·연결 여부 | 이름만 보고 불필요하다고 삭제하지 않음 |
 
 Azure ML Registry와 ACR은 서로 다른 리소스입니다.
-Registry는 모델·환경·Component 버전의 공유와 검색을 담당하고,
+Registry는 Data·Model·Environment·Component 버전의 공유와 검색을 담당하고,
 ACR은 컨테이너 이미지를 저장합니다. Registry도 자체 backing Storage와 ACR을 생성합니다.
 
 ### 2.2 팀별 RG와 공용 Registry
@@ -109,6 +109,9 @@ Registry가 자동 생성하는 관리형 RG의 Storage·ACR 비용은 별도 �
 Registry 자산 등록을 완료했고, 세 팀의 실제 소비 Pipeline도 모두 Completed입니다.
 동일 churn 모델 v1·환경 v1·검증 Component v3로 예측 `[1, 0, 1]`,
 자기 Storage 읽기 200, 순환 상대 팀 읽기 403(`AuthorizationPermissionMismatch`)을 확인했습니다.
+공용 Registry에는 합성 Data `telco-churn-shared:1/2`도 등록했습니다.
+공유 Data는 Registry Storage에 복제되며, 팀 전용 Storage의 권한을 공유하는 방식이 아닙니다.
+공유 범위가 넓은 Registry에는 실제 고객의 민감 데이터를 등록하지 않습니다.
 검사는 Team 1→2, 2→3, 3→1의 세 방향이며 전체 여섯 방향이나 팀 사용자 격리 검증은 아닙니다.
 Registry 관리형 RG의 deny를 변경하거나 구독 범위 권한을 부여하지 않습니다.
 기존 검증 Workspace는 완료된 학습과 HF 추론 이력을 보존하기 위해 유지하며,
@@ -229,11 +232,36 @@ Endpoint는 호출 주소를 제공하고 Deployment는 모델·실행 환경·�
 상담 문장을 `billing`, `network`, `cancellation` 중 하나로 분류합니다.
 고정 revision의 파일을 등록해 사용하므로 추론 시 HF 다운로드가 필요하지 않습니다.
 
+세 팀 Workspace에서도 같은 요청 형식을 사용하는
+`kt-hf-cpu-team-1`, `kt-hf-cpu-team-2`, `kt-hf-cpu-team-3` Endpoint를 배포했습니다.
+각 팀의 모델·환경·서빙 인스턴스는 자기 Workspace에 있으며,
+Registry의 churn 모델을 사용하는 Pipeline Job 추론과는 별도 경로입니다.
+Public 호출 주소를 사용하지만 Entra 인증은 필수입니다.
+세 팀 모두 정상 요청 3회 HTTP 200, 무인증 401, 빈 입력 424를 실제 호출로 확인했습니다.
+
 확인 위치: Endpoints의 Test에서 영어 요청을,
 Consume에서 호출 주소와 Entra 인증 방식을,
 Logs/Monitoring에서 컨테이너 로그와 요청 지표를 확인합니다.
 기존 호출 검증에서 정상 요청은 HTTP 200, 무인증은 401,
 잘못된 입력은 외부 424와 내부 모델 오류 400을 확인했습니다.
+
+Test의 Sample inference Input에는 아래 JSON을 붙여 넣습니다.
+세 문장의 예상 intent는 순서대로 `billing`, `network`, `cancellation`이며,
+응답의 `embedding_dimension`은 384입니다.
+
+```json
+{
+  "texts": [
+    "My invoice includes unexpected charges and I need a refund.",
+    "My mobile internet is very slow and calls keep dropping.",
+    "Please cancel my subscription and close my account."
+  ]
+}
+```
+
+요청은 1~16개의 영어 문장으로 구성하며, 각 문장은 비어 있지 않고 2,000자 이하여야 합니다.
+[동일한 요청 파일](https://github.com/daeungo1/azure-llm-mlops/blob/main/samples/tickets.json)과
+[팀별 실제 Endpoint 검증 결과](docs/deployment-status.md#팀별-hf-cpu-online-endpoint)를 함께 확인합니다.
 
 > [!WARNING]
 > 이 모델은 생성형 LLM이나 한국어 품질 검증 모델이 아닙니다.
@@ -401,18 +429,28 @@ $subscription = az account show --query id -o tsv
 uv run --no-sync python -m demo.multiteam publish --subscription $subscription
 uv run --no-sync python -m demo.multiteam prepare --subscription $subscription
 uv run --no-sync python -m demo.multiteam consume --subscription $subscription
+uv run --no-sync python -m demo.multiteam serve --subscription $subscription
+uv run --no-sync python -m demo.multiteam verify-endpoints --subscription $subscription
 uv run --no-sync python -m demo.multiteam costs --subscription $subscription
 ```
 
 `prepare`는 전용 subnet에서 public IP 없는 CPU cluster를 만들고,
 팀 Storage marker와 identity 권한을 준비합니다.
+`publish`는 Environment `kt-shared-cpu:1`, Model `telco-shared:1`,
+Component `verify_shared_model:3`, Data `telco-churn-shared:1/2`를 Registry에 등록합니다.
+Data는 Workspace-to-Registry 공유 API로 복제하며, 현재 SDK에서 experimental로 표시됩니다.
 `consume`은 실제 공유 모델 추론과 1→2, 2→3, 3→1 Storage 접근 거부를 검사합니다.
 모든 여섯 방향의 조합이나 실제 팀 사용자 계정을 검사하는 것은 아닙니다.
+`serve`는 팀별 HF CPU Endpoint를 배포하고 각 Endpoint를 실제 호출합니다.
+`verify-endpoints`는 재배포 없이 정상 요청 3회, 무인증 요청과 잘못된 입력을 검사합니다.
+팀별 결과는 `local/<workspace>/online-verification.json`에 따로 저장하므로
+기존 검증 Workspace의 `local/state.json`을 덮어쓰지 않습니다.
 실행 증적과 공유 완료 단계는 Git 제외 대상인 `local/multiteam.json`에 남습니다.
 각 완료 Job의 자식 실행 로그를 내려받아 검증한 보고서는
 `local/<workspace>/<job>/verification.json`에 저장합니다.
 공유 완료 후 재실행할 때도 이 상태 파일을 보존합니다.
 팀 Compute가 0대로 줄어도 NAT·Private Endpoint·ACR 등의 기본 비용은 계속 발생합니다.
+Online Deployment는 각 팀에 DS2_v2 1대를 사용하며 학습 Compute처럼 0대로 자동 축소되지 않습니다.
 
 ### 가벼운 학습 시나리오
 
