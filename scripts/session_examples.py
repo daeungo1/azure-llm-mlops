@@ -144,7 +144,7 @@ MESSAGES = {
     "07-environments": "Environment = 실행 조건의 버전",
     "08-serving": "init()은 한 번, run()은 요청마다",
     "09-external": "학습은 어디서 하든, 기록과 모델 관리는 한 Workspace로",
-    "10-operations": "모델은 공유, 데이터 권한·네트워크는 팀 안에서",
+    "10-operations": "권한·서비스 상태·비용을 관리하고 Private 구성도 지원",
     "11-workflow": "Track · Version · Serve",
 }
 

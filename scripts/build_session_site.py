@@ -51,7 +51,9 @@ CHAPTERS = (
         "외부 CPU 연산과 AML 추적·모델 관리 위치 분리.",
     ),
     Chapter(
-        "10-operations", "operating-boundaries.svg", "접근 권한·네트워크·요청 관측·팀별 비용 경계."
+        "10-operations",
+        "operating-boundaries.svg",
+        "권한·모니터링·비용 관리 기능과 Private 구성 지원.",
     ),
     Chapter(
         "11-workflow", "demo-workflow.svg", "코드 검증 CI와 운영자 실행·모델 운영 자동화의 차이."

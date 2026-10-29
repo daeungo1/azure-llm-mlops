@@ -309,38 +309,48 @@ Test의 Sample inference Input에는 아래 JSON을 붙여 넣습니다.
 이 패턴은 Slurm 연계 논의의 출발점이지 실제 Slurm 통합 검증은 아닙니다.
 외부 run만으로 관리형 Pipeline graph나 동일한 데이터 lineage가 자동 생성되는 것은 아닙니다.
 
-## 10. 보안·모니터링·비용: 학습 성공 이후의 운영 조건 확인하기
+## 10. 보안·모니터링·비용: MLOps 운영 기능 활용하기
 
-![접근 권한과 네트워크, 요청 관측, 팀·공통 비용의 서로 다른 검증 경계](docs/images/operating-boundaries.svg)
+![권한 관리·상태 모니터링·비용 관리 기능과 Private 구성 지원](docs/images/operating-boundaries.svg)
 
 [SVG 원본 크게 보기](docs/images/operating-boundaries.svg)
 
-MLOps에서는 모델 품질 외에도 접근 권한, 서비스 상태와 지속 비용을 관리해야 합니다.
-이번 구성은 public 진입점을 사용하되 인증과 Storage 정책을 충족하는 경계를 둡니다.
+Azure ML에서는 모델 학습·배포뿐 아니라 **누가 사용할 수 있는지, 서비스가 어떻게 동작하는지,
+어디에 비용이 발생하는지**를 함께 관리합니다.
 
-* Storage는 `SecuredByPerimeter` 및 NSP Enforced 규칙으로 보호합니다.
-  운영 PC의 직접 접근에는 Entra 권한과 허용된 공인 egress IP가 필요합니다.
-  네트워크·VPN 변경 시 IP와 Storage 접근을 다시 확인합니다.
-* AML의 Storage/Key Vault 접근은 Managed Network의 Private Endpoint를 사용합니다.
-  `AllowInternetOutbound` 설정이므로 완전한 인터넷 차단 환경은 아닙니다.
-* ACR은 인증된 public 이미지 경로를 사용하며 Private Endpoint는 없습니다.
-  ACR admin과 anonymous pull은 비활성화했습니다.
-* Endpoint 지표, Application Insights와 Log Analytics로 호출 흔적을 확인했습니다.
-  무인증 401은 컨테이너 이전에 거부되므로 Application Insights에 기록되지 않습니다.
-  지표 수집 지연이 있으며, 경보·SLO나 모델 품질·드리프트 감지 검증과는 다릅니다.
-* 학습 클러스터는 최소 0대로 축소되지만 CPU 서빙 1대는 요청이 없어도 과금됩니다.
-  ACR Premium, Storage, Private Endpoint와 로그 비용도 별도입니다.
+| 운영 기능 | 활용 방법 | 확인 위치 |
+|---|---|---|
+| 인증·권한 관리 | Entra ID와 RBAC로 사용자·팀의 자산·작업·배포 권한을 구분하고, Managed Identity로 학습·서빙에서 비밀번호 없이 Storage·ACR에 접근 | Azure Portal의 Access control (IAM), Studio의 자산·Jobs·Endpoints |
+| 상태 모니터링 | Endpoint의 요청 수·지연·오류 지표와 컨테이너 로그를 확인하고, Azure Monitor 알림과 연계 | Endpoints의 Logs/Monitoring, Application Insights, Log Analytics |
+| 비용 관리 | 학습 Compute 자동 축소, 워크로드별 SKU·인스턴스 수 선택, RG·태그별 사용량 분석과 예산 알림 활용 | Studio의 Compute·Endpoints, Azure Cost Management |
 
-확인 위치: Studio의 Compute·Endpoints와 Azure Portal의
-Storage Networking·NSP·ACR·Application Insights·Log Analytics를 연결해 살펴봅니다.
-팀 RG·Workspace와 실행 identity 범위의 격리는 별도 다중 팀 데모에서 다룹니다.
-실제 10개 팀의 사용자·Entra 그룹 권한, GPU·Slurm/Lustre, 운영 HA는 검증 범위가 아닙니다.
+데모에서는 Entra 인증과 실행 identity별 접근 제어, 실제 Endpoint 응답과 요청 지표·로그,
+팀별 RG 비용 조회와 학습 Compute의 유휴 시 0대 축소를 확인했습니다.
+Online Endpoint의 서빙 인스턴스는 요청이 없어도 비용이 발생하므로 학습 Compute와 구분해 관리합니다.
+예산 알림은 지출을 알려주는 기능이며 리소스 사용을 자동 차단하는 강제 상한은 아닙니다.
 
-2026-10-28 랩탑 점검에서 변경된 공인 IP의 `/32`를 네 개 NSP에 추가하고,
-운영자에게 데모 File share 범위의 읽기 전용 권한을 부여했습니다.
-Blob·File 조회, MLflow·Registry 자산 조회, ACR·Logs와 인증된 추론을 확인했습니다.
-2026-10-29에는 운영자가 로컬 브라우저에서 리소스 화면 접근도 확인했습니다.
-[랩탑 접근 결과와 리소스 바로가기](docs/deployment-status.md#로컬-랩탑에서의-접근-확인)에 범위를 구분했습니다.
+> [!TIP]
+> **Public은 이 데모의 접근 방식일 뿐이며, Azure ML은 기업 보안 요구에 맞춰 Private하게 구성할 수 있습니다.**
+> 인증·권한 관리, 모니터링과 비용 관리 기능은 Public/Private 구성 여부와 별도로 활용합니다.
+
+<details markdown="1">
+<summary>참고: Public 데모와 Private 운영 구성</summary>
+
+이번 데모는 Studio와 추론 호출의 접근 편의를 위해 public 진입점을 사용하며 Entra 인증은 필수입니다.
+Storage의 접근 정책과 일부 Private Endpoint도 함께 사용하므로 모든 리소스를 공개한 구성은 아닙니다.
+
+운영 환경에서는 Workspace의 Private Endpoint로 Studio/API와 Managed Online Endpoint의 접근을 제한하고,
+Managed Network와 연결 리소스의 Private Endpoint로 Storage·ACR·Key Vault 접근 경로를 구성할 수 있습니다.
+접속 단말의 사내망·VPN/ExpressRoute·Private DNS와 필요한 outbound 허용 범위는 해당 보안 정책에 맞춰 설계합니다.
+Private 구성 지원을 이번 데모가 전체 Private 환경으로 검증되었다는 의미로 해석하지 않습니다.
+
+현재 관측은 실제 호출 지표·로그 확인 범위이며, 운영 경보·SLO·Drift 감지까지 검증한 것은 아닙니다.
+[실제 네트워크 설정과 랩탑 접근 기록](docs/deployment-status.md#로컬-랩탑에서의-접근-확인)은 별도 기록에 남겼습니다.
+
+[Managed Online Endpoint 네트워크 격리](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-online-endpoint?view=azureml-api-2) ·
+[Azure ML Managed Network](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-managed-network?view=azureml-api-2)
+
+</details>
 
 ## 11. CI와 실행 Workflow: 검증 자동화와 모델 운영 자동화 구분하기
 
