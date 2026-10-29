@@ -248,6 +248,8 @@ Studio의 Compute 연결은 사용자 Entra 로그인, Notebook의 Azure API 호
 SSO는 세 Instance 모두 활성화되어 있습니다. Studio에서 로그인 또는 Authenticate를 요청하면
 Compute owner 계정으로 인증한 뒤 kernel을 선택합니다.
 로컬 실행 시에는 `az login`을 먼저 완료하세요. Notebook은 Azure CLI token 요청에 600초를 허용합니다.
+세 Compute Instance 내부의 Managed Identity로 Workspace·Notebook 파일 접근도 실제 검증했습니다.
+Job 대기는 keyless Storage와 호환되는 상태 조회 방식이며, 로그는 Studio의 Outputs + logs에서 확인합니다.
 
 [팀별 Compute·Notebook 검증 결과](docs/deployment-status.md#팀별-compute-instance와-training-notebook)
 

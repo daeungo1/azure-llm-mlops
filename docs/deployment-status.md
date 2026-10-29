@@ -114,10 +114,26 @@ NSP와 Storage Shared Key 비활성화 설정은 유지했습니다.
 | Logistic Regression | 0.7333 | 0.5902 | 0.7878 | 3/3 |
 | Random Forest | 0.7307 | 0.5511 | 0.7845 | 3/3 |
 
-위 결과 조회는 로컬 Azure CLI 인증으로 Notebook의 connect·metrics 셀을 실행한 검증입니다.
-Compute Instance kernel 내부의 Managed Identity 인증이나 signed-in Studio 연결 성공을 의미하지 않습니다.
-공유 브라우저는 Entra 로그인 화면이므로 해당 interactive 검증은 아직 남아 있습니다.
-Studio의 사용자 로그인은 Notebook의 Managed Identity와 별도이며,
+Training 결과 조회는 로컬 Azure CLI 인증으로 Notebook의 connect·metrics 셀을 실행했습니다.
+이 검증만으로 Compute 내부의 Managed Identity 인증을 판단하지 않고,
+아래 별도 Command Job을 **각 Compute Instance에 직접 제출**했습니다.
+세 Job 모두 Completed이며 보고서의 hostname도 해당 Instance 이름과 일치했습니다.
+각 Instance 내부에서 지정한 User-assigned Managed Identity로 Workspace read API와
+Azure Files의 실제 Notebook 읽기에 성공하고 Notebook SHA256을 확인했습니다.
+
+| Compute Instance | 인증 검증 Job | Workspace API | Notebook 파일 읽기 |
+|---|---|---|---|
+| `ci-kt-team1` | `silly_stamp_542rbq4bhf` | 성공 | 성공 |
+| `ci-kt-team2` | `olden_giraffe_n3zvs4zg59` | 성공 | 성공 |
+| `ci-kt-team3` | `busy_ball_773mq04p7l` | 성공 | 성공 |
+
+SDK의 `jobs.stream()`은 keyless Storage 로그 조회 중 credential 객체를 account key로 처리해
+`TypeError`가 발생하는 것을 확인했습니다. Notebook의 대기 셀은 이 호출 대신
+15초 간격의 인증된 Job 상태 조회를 사용하며, 실패·취소와 30분 timeout을 명시적으로 알립니다.
+Shared Key를 켜거나 인증 오류를 숨기는 fallback은 사용하지 않습니다.
+
+위 Compute 내부 검증은 Command Job 실행이며 Jupyter kernel이나 signed-in Studio UI 검증은 아닙니다.
+Studio의 사용자 로그인은 Managed Identity와 별도이므로,
 Compute owner 계정으로 로그인 또는 Authenticate를 완료한 뒤 kernel을 선택합니다.
 
 [Training Notebook 원본](https://github.com/daeungo1/azure-llm-mlops/blob/main/notebooks/01_submit_training.ipynb) ·

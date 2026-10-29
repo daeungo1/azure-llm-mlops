@@ -3,6 +3,7 @@
 import ast
 import importlib
 import json
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -92,6 +93,46 @@ def test_notebook_connect_checks_workspace_authorization_before_reporting_succes
     ]
     assert len(reads) == 1
     assert reads[0].lineno < prints[0].lineno
+
+
+@pytest.mark.parametrize("final_status", ["Completed", "Failed", "Canceled", "NotResponding"])
+def test_notebook_wait_uses_authenticated_status_reads(monkeypatch, final_status):
+    notebook = json.loads(
+        (ROOT / "notebooks" / "01_submit_training.ipynb").read_text(encoding="utf-8")
+    )
+    wait = next(cell for cell in notebook["cells"] if cell["id"] == "wait")
+    statuses = iter(["Running", final_status])
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", sleeps.append)
+    scope = {
+        "ml": SimpleNamespace(
+            jobs=SimpleNamespace(get=lambda name: SimpleNamespace(status=next(statuses)))
+        ),
+        "jobs": [SimpleNamespace(name="test-job")],
+    }
+    if final_status == "Completed":
+        exec("".join(wait["source"]), scope)
+    else:
+        with pytest.raises(RuntimeError, match=f"test-job: {final_status}"):
+            exec("".join(wait["source"]), scope)
+    assert sleeps == [15]
+
+
+def test_notebook_wait_times_out_explicitly(monkeypatch):
+    notebook = json.loads(
+        (ROOT / "notebooks" / "01_submit_training.ipynb").read_text(encoding="utf-8")
+    )
+    wait = next(cell for cell in notebook["cells"] if cell["id"] == "wait")
+    clock = iter([0, 1800])
+    monkeypatch.setattr(time, "monotonic", lambda: next(clock))
+    scope = {
+        "ml": SimpleNamespace(
+            jobs=SimpleNamespace(get=lambda name: SimpleNamespace(status="Running"))
+        ),
+        "jobs": [SimpleNamespace(name="test-job")],
+    }
+    with pytest.raises(TimeoutError, match="test-job"):
+        exec("".join(wait["source"]), scope)
 
 
 @pytest.mark.parametrize("corrupted", [False, True])
