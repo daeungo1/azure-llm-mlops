@@ -42,7 +42,14 @@ def test_cd_requires_ci_main_oidc_and_private_runner():
     assert deploy["environment"] == "azureml-demo"
     assert deploy["permissions"] == {"contents": "read", "id-token": "write"}
     assert set(deploy["runs-on"]) == {"self-hosted", "linux", "x64", "azureml-team-1"}
-    assert "runner.temp" in deploy["env"]["AZURE_CONFIG_DIR"]
+    assert all("runner." not in value for value in deploy["env"].values())
+    prerequisites = next(
+        step["run"]
+        for step in deploy["steps"]
+        if step.get("name") == "Check deployment prerequisites"
+    )
+    assert "AZURE_CONFIG_DIR=$RUNNER_TEMP/azureml-demo-az" in prerequisites
+    assert '>> "$GITHUB_ENV"' in prerequisites
     login = next(
         step for step in deploy["steps"] if step.get("uses", "").startswith("azure/login@")
     )
