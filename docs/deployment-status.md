@@ -234,6 +234,16 @@ Enabled이고 실제 배포 상태는 Disabled인 차이가 있었습니다.
 자동화의 SDK/API 검증과 운영자의 브라우저 접근 확인을 함께 기록합니다.
 Studio 전체 탭의 기능과 데이터 미리보기 렌더링을 전수 검사한 것은 아닙니다.
 
+2026-10-29 09:04 KST에는 Datastore 목록은 표시되지만
+`workspaceblobstore`의 Browse가 `Network error`를 표시하는 사례가 확인되었습니다.
+랩탑의 공인 egress IPv4가 다시 바뀌어 NSP 허용 목록에 없었고,
+같은 랩탑의 인증된 Blob 목록 요청도 네트워크 차단으로 실패했습니다.
+새 주소만 `/32`로 네 개 NSP에 추가한 뒤 네 Storage의 컨테이너 목록 조회가 복구되었습니다.
+기존 `workspaceblobstore` 컨테이너의 `comp=list&delimiter=/` 요청은 HTTP 200으로
+`LocalUpload/`와 `azureml/`를 반환했습니다.
+이는 폴더 Browse API의 복구 증적이며, 수정 후 사용자 브라우저 화면 확인은 별도입니다.
+Workspace 진입이나 Datastore 메타데이터 조회 성공만으로 Blob Browse 성공을 판단하지 않습니다.
+
 ### 수정한 접근 설정
 
 랩탑의 공인 egress IPv4가 기존 허용 주소와 달라 Storage 조회가 차단되었습니다.
