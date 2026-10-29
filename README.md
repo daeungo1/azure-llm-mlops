@@ -325,15 +325,59 @@ Blob·File 조회, MLflow·Registry 자산 조회, ACR·Logs와 인증된 추론
 
 <a id="실행-workflow"></a>
 
-![실행 Workflow: GitHub CI 검증과 운영자 수동 Azure 실행](docs/images/demo-workflow.svg)
+![실행 Workflow: CI 검증·수동 Azure 실행·선택적 CD](docs/images/demo-workflow.svg)
 
 [Workflow SVG 원본 크게 보기](docs/images/demo-workflow.svg)
 
-GitHub Actions는 코드의 Ruff·pytest와 Bicep build를 검증합니다.
-별도 Pages workflow는 이 문서 사이트를 빌드·게시합니다.
-클라우드 학습·이미지 빌드·모델 배포를 자동 실행하는 CD는 아닙니다.
-현재 Azure 실행은 운영자가 수행하고, AML이 환경 이미지를 빌드해 ACR에 저장합니다.
-운영 전환 시 품질 기준·승인·승격/롤백·재학습 trigger를 추가 설계해야 합니다.
+[기존 CI](https://github.com/daeungo1/azure-llm-mlops/blob/main/.github/workflows/ci.yml)는 push·PR에서 Ruff·pytest와 Bicep build를 검증하고,
+별도 Pages workflow는 문서 사이트를 게시합니다.
+[HF CPU CI/CD 예시](https://github.com/daeungo1/azure-llm-mlops/blob/main/.github/workflows/hf-cpu-cicd.yml)는 아래 흐름을 한 workflow에 구성합니다.
+
+`수동 실행 → CI: Ruff·pytest → 선택적 CD: OIDC 로그인·HF 등록·배포 → 실제 추론 검증·artifact`
+
+GitHub의 [Actions → HF CPU CI/CD example](https://github.com/daeungo1/azure-llm-mlops/actions/workflows/hf-cpu-cicd.yml)에서
+**Run workflow**를 실행합니다. 기본값 `deploy_azure=false`이면 Azure 인증 없이 CI만 실행하고 CD는 건너뜁니다.
+CI 성공이나 CD의 skipped 상태를 실제 Azure 배포 성공으로 해석하지 않습니다.
+
+### Azure CD를 연결하는 조건
+
+`deploy_azure=true`는 CI 성공 후 **main**에서만 CD를 실행합니다.
+먼저 GitHub Environment `azureml-demo`를 만들고 required reviewers와 main 전용 배포 제한을 설정합니다.
+Environment variables에는 다음 세 ID를 등록합니다. Client secret이나 Azure 비밀번호는 사용하지 않습니다.
+
+| Environment variable | 값 |
+|---|---|
+| `AZURE_CLIENT_ID` | 배포용 Entra 애플리케이션 또는 사용자 할당 Managed Identity의 client ID |
+| `AZURE_TENANT_ID` | Azure tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | 배포 대상 subscription ID |
+
+해당 Azure identity에는 GitHub OIDC federated credential을 연결합니다.
+Issuer는 `https://token.actions.githubusercontent.com`,
+Audience는 `api://AzureADTokenExchange`,
+Subject는 `repo:daeungo1/azure-llm-mlops:environment:azureml-demo`입니다.
+
+CD는 `self-hosted`, `linux`, `x64`, `azureml-team-1` label의 전용 runner를 사용합니다.
+Azure CLI가 설치되어 있어야 하며 팀 1 Storage private endpoint와 DNS에 접근하고,
+Azure API·GitHub·패키지 저장소·Hugging Face로 outbound 통신할 수 있어야 합니다.
+기존 `cpu-secure` 학습 Compute가 GitHub runner로 자동 전환되는 것은 아닙니다.
+GitHub-hosted runner의 동적 IP를 Storage 허용 목록에 추가하거나 private 리소스를 공개하지 않습니다.
+
+배포 identity는 팀 1 Workspace 범위의 Contributor, 팀 1 Storage의 Storage Blob Data Contributor가 필요합니다.
+기존 배포 helper가 Endpoint identity의 Blob Reader·AcrPull 역할을 부여하므로,
+배포 identity에 팀 1 Storage와 ACR 각각의 범위로 Role Based Access Control Administrator 권한도 필요합니다.
+구독 전체의 Owner 권한을 부여하지 않습니다. 이 예시는 identity·권한·runner를 자동 생성하지 않습니다.
+
+> [!WARNING]
+> CD를 선택하면 기존 `kt-hf-cpu-team-1`의 `blue`를 in-place 재배포하고 traffic을 100%로 설정합니다.
+> 별도 green 배포나 자동 rollback은 없습니다. 검증 실패 시 workflow는 실패하지만 배포를 자동 복구하지 않습니다.
+> `kt-hf-cpu-secure`와 팀 2·3, 네트워크·인프라는 변경하지 않습니다.
+
+HF 모델은 고정 revision의 사전학습 모델입니다. Churn 학습 출력의 자동 배포가 아닙니다.
+AML은 환경 이미지를 빌드해 팀 1 ACR에 저장합니다.
+CD는 기존 배포·검증 함수를 재사용해 정상 추론 3회, 모델·384차원·intent, 익명 요청 거부와 잘못된 입력 거부를 검사합니다.
+성공한 결과 JSON만 Actions artifact로 7일 보관합니다.
+기본 CI 실행에는 Azure 설정이 필요 없지만, 실제 CD는 위 사전 구성을 완료한 뒤 선택해야 합니다.
+운영 전환 시 품질 기준·승격/rollback·재학습 trigger를 별도로 설계해야 합니다.
 
 SDK/API와 Endpoint 호출을 검증했으며, 운영자의 로컬 브라우저 접근도 확인했습니다.
 Studio 전체 탭의 기능과 데이터 미리보기 렌더링을 전수 검사한 것은 아닙니다.

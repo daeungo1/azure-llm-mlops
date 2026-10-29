@@ -1,0 +1,104 @@
+name: HF CPU CI/CD example
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_azure:
+        description: Redeploy team 1 blue (requires OIDC, environment approval and private runner)
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hf-cpu-demo-team-1
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI - validate serving code
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --extra serving --python 3.11
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync ruff format --check .
+      - run: uv run --no-sync pytest -q
+      - name: Explain the Azure deployment gate
+        run: |
+          echo 'CI passed. CD requires deploy_azure=true on main and the documented OIDC/private-runner setup.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The default run performs CI only; a skipped CD job is not an Azure deployment verification.' >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: CD - deploy team 1 and verify inference
+    needs: ci
+    # Never deploy pull-request code or enable Azure writes by default.
+    if: github.ref == 'refs/heads/main' && inputs.deploy_azure
+    runs-on: [self-hosted, linux, x64, azureml-team-1]
+    timeout-minutes: 90
+    environment: azureml-demo
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CONFIG_DIR: ${{ runner.temp }}/azureml-demo-az
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check deployment prerequisites
+        shell: bash
+        run: |
+          : "${AZURE_CLIENT_ID:?Set the azureml-demo environment variable AZURE_CLIENT_ID}"
+          : "${AZURE_TENANT_ID:?Set the azureml-demo environment variable AZURE_TENANT_ID}"
+          : "${AZURE_SUBSCRIPTION_ID:?Set the azureml-demo environment variable AZURE_SUBSCRIPTION_ID}"
+          az version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --extra serving --python 3.11
+      # Short-lived OIDC authentication; no client secret or stored Azure password.
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Register HF assets, deploy blue and verify live responses
+        id: deploy
+        shell: bash
+        run: |
+          uv run --no-sync python - <<'PY'
+          import json
+          import logging
+          import os
+
+          from demo.multiteam import serve_team
+
+          logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+          logging.getLogger("azure").setLevel(logging.WARNING)
+          config = {
+              "subscription_id": os.environ["AZURE_SUBSCRIPTION_ID"],
+              "resource_group": "rg-kt-mlops-team-1",
+              "workspace_name": "mlw-ktmlops-secure-1",
+          }
+          report = serve_team(config, deploy_endpoint=True)
+          print(json.dumps(report, indent=2))
+          PY
+      - name: Save actual inference evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-1-inference-${{ github.run_id }}
+          path: local/mlw-ktmlops-secure-1/online-verification.json
+          if-no-files-found: error
+          retention-days: 7

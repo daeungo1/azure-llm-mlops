@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="994" viewBox="0 0 1000 994" style="max-width:100%;height:auto" role="img" aria-labelledby="title desc">
-  <title id="title">GitHub CI와 수동 Azure 실행 Workflow</title>
-  <desc id="desc">코드 검증 CI는 코드와 Bicep을 검사하지만 Azure 리소스를 배포하지 않습니다. 운영자는 Azure 기반 환경과 네트워크를 준비하고 compute, assets, train, external, deploy, verify 순서로 실행합니다. 명령 실행 순서는 동일 모델의 lineage를 의미하지 않습니다. assets에는 Components 등록이 포함되고 deploy는 별도 HF 모델을 배포합니다.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1324" viewBox="0 0 1000 1324" style="max-width:100%;height:auto" role="img" aria-labelledby="title desc">
+  <title id="title">CI 검증·수동 Azure 실행·선택적 CD</title>
+  <desc id="desc">기존 CI는 코드와 Bicep을 검사하고 운영자는 Azure 실행 단계를 수행합니다. 별도 수동 CI/CD 예시는 기본적으로 CI만 실행하고, main에서 명시적으로 선택한 경우 OIDC와 private runner를 사용해 팀 1 HF Endpoint를 재배포하고 실제 추론을 검증합니다. Churn 학습 모델과 HF 서빙 모델은 별개이며 CD에 자동 rollback은 없습니다.</desc>
   <defs>
     <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M1 1 9 5 1 9Z" fill="#32658b"/></marker>
     <style>
@@ -11,9 +11,9 @@
       .command{font-family:Consolas,"Courier New",monospace;font-size:20px;font-weight:700;fill:#075b93}
     </style>
   </defs>
-  <rect width="1000" height="994" rx="16" fill="#fff"/>
-  <text x="32" y="46" class="title">코드 검증 → 운영자 Azure 실행 Workflow</text>
-  <text x="32" y="76" class="small">코드·템플릿 검증 CI와 운영자 수동 실행의 경계</text>
+  <rect width="1000" height="1324" rx="16" fill="#fff"/>
+  <text x="32" y="46" class="title">CI 검증·수동 실행·선택적 Azure CD</text>
+  <text x="32" y="76" class="small">기존 검증·수동 실행을 유지하고 HF 서빙용 CD 예시를 별도 제공</text>
 
   <g class="panel" id="github-ci">
     <rect x="24" y="112" width="952" height="278" rx="14" fill="#f1f5fa" stroke="#b8c9da"/>
@@ -103,6 +103,36 @@
     <path d="M636 846H684" class="edge"/>
     <text x="44" y="934" class="small">all = 위 6단계 순차 실행 · 실패 시 예외·종료 코드를 확인한 뒤 해당 단계의 원인을 수정</text>
     <text x="44" y="958" class="small">local/state.json: 단계 결과 · local/verification.json: 호출 결과 (모두 Git 제외)</text>
+  </g>
+
+  <g class="panel" id="optional-cd">
+    <rect x="24" y="994" width="952" height="306" rx="14" fill="#eff9f3" stroke="#88b59b"/>
+    <text x="44" y="1030" class="heading">C / HF CPU CI/CD example: 수동 실행·선택적 Azure 배포</text>
+    <text x="44" y="1062" class="small">기본 deploy_azure=false · true를 선택한 main 실행만 승인·인증 후 CD 수행</text>
+    <g class="node" id="hf-ci">
+      <rect x="44" y="1086" width="272" height="148" rx="10" class="box"/>
+      <text x="60" y="1120" class="heading">CI / GitHub runner</text>
+      <text x="60" y="1152">Ruff check / format</text>
+      <text x="60" y="1184">pytest</text>
+      <text x="60" y="1216" class="small">Azure 인증·변경 없음</text>
+    </g>
+    <g class="node" id="hf-cd">
+      <rect x="364" y="1086" width="272" height="148" rx="10" class="box"/>
+      <text x="380" y="1120" class="heading">CD / private runner</text>
+      <text x="380" y="1152">OIDC → HF 모델·환경 등록</text>
+      <text x="380" y="1184" class="small">팀 1 blue 재배포 · traffic 100%</text>
+      <text x="380" y="1216" class="small">자동 rollback 없음</text>
+    </g>
+    <g class="node" id="hf-cd-verify">
+      <rect x="684" y="1086" width="272" height="148" rx="10" class="box"/>
+      <text x="700" y="1120" class="heading">검증 / 같은 CD job</text>
+      <text x="700" y="1152">정상 추론 200 × 3</text>
+      <text x="700" y="1184" class="small">익명 401 · 입력 오류 424</text>
+      <text x="700" y="1216" class="small">JSON → Actions artifact</text>
+    </g>
+    <path d="M316 1160H364" class="edge"/>
+    <path d="M636 1160H684" class="edge"/>
+    <text x="44" y="1268" class="small">인증·runner·승인 사전 설정 필요 · Churn 학습·다른 팀·인프라 변경 없음</text>
   </g>
 
 </svg>
